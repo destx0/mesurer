@@ -4,6 +4,13 @@ import { captureCommentTarget, resolveCommentTarget } from "../../../../packages
 import { createActiveTabRegistry } from "../../../extension/src/active-tabs";
 import { PERSIST_DEFAULT_KEY, STYLES_KEY } from "../../../extension/src/messages";
 import { MESURER_STYLES } from "../../../../packages/mesurer/styles.generated";
+import {
+  captureDomFingerprint,
+  createLocalReviewStateStorage,
+  deserializeReviewState,
+  resolveDomFingerprint,
+  serializeReviewState,
+} from "../../../../packages/mesurer/core/review";
 
 export type ActiveTabTestApi = {
   createActiveTabRegistry: typeof createActiveTabRegistry;
@@ -14,6 +21,13 @@ const stealPagePrompt = new URLSearchParams(location.search).has("prompt");
 Object.assign(window, {
   __mesurerCommentTargetTest: { captureCommentTarget, resolveCommentTarget },
   __mesurerActiveTabTest: { createActiveTabRegistry },
+  __mesurerReviewStateTest: {
+    captureDomFingerprint,
+    createLocalReviewStateStorage,
+    deserializeReviewState,
+    resolveDomFingerprint,
+    serializeReviewState,
+  },
 });
 
 function ShadowCommentTarget() {

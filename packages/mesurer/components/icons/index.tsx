@@ -19,6 +19,7 @@ export { CloseIcon } from './close'
 export { CopyIcon } from './copy'
 export { SendIcon } from './send'
 export { MesurerMarkIcon } from './mesurer-mark'
+export { SaveIcon } from './save'
 
 export { DropperIcon as ColorPickerIcon } from './dropper'
 export { MeasureBarIcon as RulerIcon } from './measure-bar'

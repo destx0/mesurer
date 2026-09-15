@@ -74,6 +74,10 @@ import {
 import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
+import {
+  createReviewStateFromWorkspace,
+  serializeReviewState,
+} from "./core/review";
 export type MesurerProps = {
   highlightColor?: string;
   guideColor?: string;
@@ -538,6 +542,87 @@ export function MesurerClient({
   selectedPenStrokeIdsRef.current = selectedPenStrokeIds;
   textAnnotationsRef.current = textAnnotations;
   selectedTextIdsRef.current = selectedTextIds;
+  const logReviewState = useCallback(() => {
+    const now = Date.now();
+    const pageId = ownerWindow.location.href;
+    const versionId = `local-version-${now}`;
+    const state = createReviewStateFromWorkspace({
+      project: {
+        id: "local-project",
+        name: ownerDocument.title || ownerWindow.location.hostname || "Local project",
+      },
+      page: {
+        id: pageId,
+        projectId: "local-project",
+        url: ownerWindow.location.href,
+        ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
+        versionIds: [],
+      },
+      version: {
+        id: versionId,
+        pageId,
+        number: 1,
+        createdAt: now,
+        snapshot: {
+          url: ownerWindow.location.href,
+          ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
+          capturedAt: now,
+          viewport: {
+            width: ownerWindow.innerWidth,
+            height: ownerWindow.innerHeight,
+            devicePixelRatio: ownerWindow.devicePixelRatio,
+          },
+          scroll: { x: ownerWindow.scrollX, y: ownerWindow.scrollY },
+        },
+        domContext: { fingerprints: {} },
+      },
+      reviewId: `local-review-${now}`,
+      workspace: {
+        enabled,
+        xrayVisible,
+        toolMode,
+        rulersVisible,
+        guideOrientation,
+        guides,
+        selectedGuideIds,
+        arrows,
+        selectedArrowIds,
+        selectedPenStrokeIds,
+        selectedTextIds,
+        penStrokes,
+        textAnnotations,
+        measurements,
+        activeMeasurement,
+        heldDistances,
+        comments,
+      },
+      now,
+    });
+    console.groupCollapsed("[Mesurer] Review state");
+    console.log(state);
+    console.log(serializeReviewState(state));
+    console.groupEnd();
+  }, [
+    activeMeasurement,
+    arrows,
+    comments,
+    enabled,
+    guideOrientation,
+    guides,
+    heldDistances,
+    measurements,
+    ownerDocument,
+    ownerWindow,
+    penStrokes,
+    rulersVisible,
+    selectedArrowIds,
+    selectedGuideIds,
+    selectedPenStrokeIds,
+    selectedTextIds,
+    textAnnotations,
+    toolMode,
+    xrayVisible,
+  ]);
   const {
     recordSnapshot,
     createActionCommit,
@@ -1824,6 +1909,7 @@ export function MesurerClient({
         },
         openMenu,
         setOpenMenu,
+        onLogReviewState: logReviewState,
       }}
     />
   );

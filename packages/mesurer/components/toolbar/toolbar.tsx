@@ -43,6 +43,7 @@ import {
   MesurerMarkIcon,
   RulerIcon,
   RulersIcon,
+  SaveIcon,
   TextIcon,
   XrayIcon,
   CommentIcon,
@@ -95,6 +96,7 @@ function ToolbarComponent(
     features,
     openMenu,
     setOpenMenu,
+    onLogReviewState,
   }: ToolbarProps,
   ref: Ref<HTMLDivElement>,
 ) {
@@ -1009,6 +1011,16 @@ function ToolbarComponent(
                             <ToolbarDivider />
                             <ToolbarGroup label="Capture and settings" className="msr:px-1">
                               <div ref={captureAnchorRef} className="mesurer-toolbar-flow mesurer-toolbar-caret-anchor msr:relative msr:flex msr:flex-none">
+                                <ToolbarButton
+                                  id="review-state"
+                                  active={false}
+                                  label="Log review state"
+                                  onClick={onLogReviewState}
+                                  tooltip={toolbarTooltip}
+                                  tooltipVisible={tooltipsEnabled && visibleTooltipId === "review-state"}
+                                >
+                                  <SaveIcon size={20} />
+                                </ToolbarButton>
                                 {features.screenshot ? (
                                   <>
                                     <ToolbarButton

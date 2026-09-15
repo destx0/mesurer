@@ -112,6 +112,7 @@ export type ToolbarProps = {
   features: ResolvedMesurerFeatures;
   openMenu: OpenMenu;
   setOpenMenu: Dispatch<SetStateAction<OpenMenu>>;
+  onLogReviewState: () => void;
 };
 
 export type ToolbarTooltipProps = {
