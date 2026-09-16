@@ -112,7 +112,8 @@ export type ToolbarProps = {
   features: ResolvedMesurerFeatures;
   openMenu: OpenMenu;
   setOpenMenu: Dispatch<SetStateAction<OpenMenu>>;
-  onLogReviewState: () => void;
+  onSaveReview: () => void | Promise<void>;
+  reviewSaveStatus?: "idle" | "saving" | "saved" | "error";
 };
 
 export type ToolbarTooltipProps = {

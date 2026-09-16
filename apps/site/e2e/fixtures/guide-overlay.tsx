@@ -6,6 +6,8 @@ import { PERSIST_DEFAULT_KEY, STYLES_KEY } from "../../../extension/src/messages
 import { MESURER_STYLES } from "../../../../packages/mesurer/styles.generated";
 import {
   captureDomFingerprint,
+  captureReviewSnapshot,
+  createEphemeralReviewUrl,
   createLocalReviewStateStorage,
   deserializeReviewState,
   resolveDomFingerprint,
@@ -23,6 +25,8 @@ Object.assign(window, {
   __mesurerActiveTabTest: { createActiveTabRegistry },
   __mesurerReviewStateTest: {
     captureDomFingerprint,
+    captureReviewSnapshot,
+    createEphemeralReviewUrl,
     createLocalReviewStateStorage,
     deserializeReviewState,
     resolveDomFingerprint,

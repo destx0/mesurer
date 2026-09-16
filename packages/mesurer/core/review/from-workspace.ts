@@ -1,5 +1,6 @@
 import type { MesurerStoredWorkspace } from "../persistence"
 import type { CommentTarget } from "../types"
+import type { TextStyleSettings } from "../text-style"
 import { captureDomFingerprint } from "./dom-fingerprint"
 import type {
   DomFingerprint,
@@ -17,7 +18,7 @@ type ReviewStateCaptureOptions = {
   page: ReviewPage
   version: PageVersion
   reviewId: string
-  workspace: MesurerStoredWorkspace
+  workspace: MesurerStoredWorkspace & { textStyle?: TextStyleSettings }
   now?: number
 }
 
@@ -67,9 +68,9 @@ export const createReviewStateFromWorkspace = ({
       targetId,
       text,
       messages: comment.messages,
-      position: {
-        x: comment.target.rect.left,
-        y: comment.target.rect.top,
+      position: comment.target.documentPoint ?? {
+        x: comment.target.rect.left + comment.target.rect.width * (comment.target.anchor?.x ?? 1),
+        y: comment.target.rect.top + comment.target.rect.height * (comment.target.anchor?.y ?? 0),
       },
       status: comment.status,
       createdVersion: version.id,
@@ -118,6 +119,7 @@ export const createReviewStateFromWorkspace = ({
     updatedAt: now,
     comments,
     annotations,
+    textStyle: workspace.textStyle,
   }
 
   return {

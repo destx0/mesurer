@@ -50,7 +50,7 @@ import { attachPinnedGuideTarget } from "./core/distances";
 import { useAnnotationSelection } from "./hooks/use-annotation-selection";
 import { useAnnotationCallbacks } from "./hooks/use-annotation-callbacks";
 import type { ColorPickerFormat } from "./core/colors";
-import type { CommentThread, ToolMode } from "./core/types";
+import type { CommentThread, Rect, ToolMode } from "./core/types";
 import type { CommentFilter } from "./comments/types";
 
 export type ExtensionRecordingSession = {
@@ -75,9 +75,50 @@ import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
 import {
+  createEphemeralReviewUrl,
   createReviewStateFromWorkspace,
+  captureReviewSnapshot,
+  saveReviewViewer,
   serializeReviewState,
 } from "./core/review";
+
+const collectReviewComments = (
+  comments: CommentThread[],
+  rects: ReadonlyMap<string, Rect>,
+  pins: NodeListOf<HTMLElement> | undefined,
+  ownerWindow: Window,
+) => comments.map((comment, index) => {
+  const targetRect = rects.get(comment.id) ?? comment.target.rect;
+  const pinRect = pins?.[index]?.getBoundingClientRect();
+  return {
+    ...comment,
+    target: {
+      ...comment.target,
+      rect: targetRect,
+      documentPoint: pinRect
+        ? { x: pinRect.left + pinRect.width / 2 + ownerWindow.scrollX, y: pinRect.top + pinRect.height / 2 + ownerWindow.scrollY }
+        : {
+          x: targetRect.left + targetRect.width * (comment.target.anchor?.x ?? 1) + ownerWindow.scrollX,
+          y: targetRect.top + targetRect.height * (comment.target.anchor?.y ?? 0) + ownerWindow.scrollY,
+        },
+    },
+  };
+});
+
+const collectReviewTextAnnotations = <T extends { id: string; text: string }>(
+  annotations: T[],
+  overlay: HTMLElement | undefined,
+) => {
+  const result = [...annotations];
+  for (const element of overlay?.querySelectorAll<HTMLElement>("[data-mesurer-text]") ?? []) {
+    const id = element.dataset.mesurerTextId;
+    const index = id ? result.findIndex((annotation) => annotation.id === id) : -1;
+    const textNode = element.querySelector<HTMLElement>("[data-mesurer-text-input]") ?? element;
+    if (index >= 0) result[index] = { ...result[index], text: textNode.textContent ?? result[index].text };
+  }
+  return result;
+};
+
 export type MesurerProps = {
   highlightColor?: string;
   guideColor?: string;
@@ -542,66 +583,118 @@ export function MesurerClient({
   selectedPenStrokeIdsRef.current = selectedPenStrokeIds;
   textAnnotationsRef.current = textAnnotations;
   selectedTextIdsRef.current = selectedTextIds;
-  const logReviewState = useCallback(() => {
+  const savingReviewRef = useRef(false);
+  const [reviewSaveStatus, setReviewSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  useEffect(() => {
+    setReviewSaveStatus("idle");
+  }, [arrows, comments, guides, measurements, penStrokes, textAnnotations]);
+  const saveReview = useCallback(async () => {
+    if (savingReviewRef.current) return;
+    savingReviewRef.current = true;
+    setReviewSaveStatus("saving");
     const now = Date.now();
-    const pageId = ownerWindow.location.href;
-    const versionId = `local-version-${now}`;
-    const state = createReviewStateFromWorkspace({
-      project: {
-        id: "local-project",
-        name: ownerDocument.title || ownerWindow.location.hostname || "Local project",
-      },
-      page: {
-        id: pageId,
-        projectId: "local-project",
-        url: ownerWindow.location.href,
-        ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
-        versionIds: [],
-      },
-      version: {
-        id: versionId,
-        pageId,
-        number: 1,
-        createdAt: now,
-        snapshot: {
+    try {
+      const pageId = ownerWindow.location.href;
+      const versionId = `local-version-${now}`;
+      const commentPins = overlayRef.current?.querySelectorAll<HTMLElement>("[data-mesurer-comment-pin]");
+      const reviewComments = collectReviewComments(comments, commentRuntimeSnapshot.rects, commentPins, ownerWindow);
+      let reviewTextAnnotations = collectReviewTextAnnotations(textAnnotationsRef.current, overlayRef.current ?? undefined);
+      const activeTextDraft = textDraftRef.current;
+      const activeText = (textDraftInputRef.current ?? overlayRef.current?.querySelector<HTMLElement>("[data-mesurer-text-input]"))?.textContent?.trim();
+      if (activeTextDraft && activeText) {
+        const existing = activeTextDraft.id
+          ? reviewTextAnnotations.find((annotation) => annotation.id === activeTextDraft.id)
+          : undefined;
+        if (existing) {
+          const index = reviewTextAnnotations.indexOf(existing);
+          reviewTextAnnotations[index] = { ...existing, text: activeText };
+        }
+        else reviewTextAnnotations.push({ id: `local-text-${now}`, x: activeTextDraft.x, y: activeTextDraft.y, text: activeText });
+      }
+      const state = createReviewStateFromWorkspace({
+        project: {
+          id: "local-project",
+          name: ownerDocument.title || ownerWindow.location.hostname || "Local project",
+        },
+        page: {
+          id: pageId,
+          projectId: "local-project",
           url: ownerWindow.location.href,
           ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
-          capturedAt: now,
-          viewport: {
-            width: ownerWindow.innerWidth,
-            height: ownerWindow.innerHeight,
-            devicePixelRatio: ownerWindow.devicePixelRatio,
-          },
-          scroll: { x: ownerWindow.scrollX, y: ownerWindow.scrollY },
+          versionIds: [],
         },
-        domContext: { fingerprints: {} },
-      },
-      reviewId: `local-review-${now}`,
-      workspace: {
-        enabled,
-        xrayVisible,
-        toolMode,
-        rulersVisible,
-        guideOrientation,
-        guides,
-        selectedGuideIds,
-        arrows,
-        selectedArrowIds,
-        selectedPenStrokeIds,
-        selectedTextIds,
-        penStrokes,
-        textAnnotations,
-        measurements,
-        activeMeasurement,
-        heldDistances,
-        comments,
-      },
-      now,
-    });
-    console.groupCollapsed("[Mesurer] Review state");
-    console.log(state);
-    console.log(serializeReviewState(state));
-    console.groupEnd();
+        version: {
+          id: versionId,
+          pageId,
+          number: 1,
+          createdAt: now,
+          snapshot: {
+            url: ownerWindow.location.href,
+            ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
+            capturedAt: now,
+            viewport: {
+              width: ownerWindow.innerWidth,
+              height: ownerWindow.innerHeight,
+              devicePixelRatio: ownerWindow.devicePixelRatio,
+            },
+            scroll: { x: ownerWindow.scrollX, y: ownerWindow.scrollY },
+          },
+          domContext: { fingerprints: {} },
+        },
+        reviewId: `local-review-${now}`,
+        workspace: {
+          enabled,
+          xrayVisible,
+          toolMode,
+          rulersVisible,
+          guideOrientation,
+          guides,
+          selectedGuideIds,
+          arrows,
+          selectedArrowIds,
+          selectedPenStrokeIds,
+          selectedTextIds,
+          penStrokes,
+          textAnnotations: reviewTextAnnotations,
+          measurements,
+          activeMeasurement,
+          heldDistances,
+          comments: reviewComments,
+          textStyle: settings.textStyle,
+        },
+        now,
+      });
+      const capture = await captureReviewSnapshot({
+        ownerDocument,
+        ownerWindow,
+        overlay: overlayRef.current,
+        captureVisibleTab,
+        captureDom: true,
+      });
+      const ephemeral = await createEphemeralReviewUrl(state, capture, ownerWindow);
+      const reviewId = ownerWindow.crypto.randomUUID?.() ?? (() => {
+        const bytes = new Uint8Array(16);
+        ownerWindow.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        return [...bytes].map((byte, index) => `${byte.toString(16).padStart(2, "0")}${[3, 5, 7, 9].includes(index) ? "-" : ""}`).join("");
+      })();
+      // Demo-only UUID route: the viewer is stored locally and is not cross-browser shareable.
+      await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
+      const reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
+      console.groupCollapsed("[Mesurer] Review saved");
+      console.log("[Mesurer] Temporary review URL", reviewUrl);
+      URL.revokeObjectURL(ephemeral.url);
+      console.log(ephemeral.state);
+      console.log(serializeReviewState(ephemeral.state));
+      console.groupEnd();
+      setReviewSaveStatus("saved");
+    } catch (error) {
+      console.error("[Mesurer] Could not save review", error);
+      setReviewSaveStatus("error");
+    } finally {
+      savingReviewRef.current = false;
+    }
   }, [
     activeMeasurement,
     arrows,
@@ -613,6 +706,7 @@ export function MesurerClient({
     measurements,
     ownerDocument,
     ownerWindow,
+    overlayRef,
     penStrokes,
     rulersVisible,
     selectedArrowIds,
@@ -620,8 +714,11 @@ export function MesurerClient({
     selectedPenStrokeIds,
     selectedTextIds,
     textAnnotations,
+    settings.textStyle,
     toolMode,
     xrayVisible,
+    captureVisibleTab,
+    commentRuntimeSnapshot.rects,
   ]);
   const {
     recordSnapshot,
@@ -1909,7 +2006,8 @@ export function MesurerClient({
         },
         openMenu,
         setOpenMenu,
-        onLogReviewState: logReviewState,
+        onSaveReview: saveReview,
+        reviewSaveStatus,
       }}
     />
   );

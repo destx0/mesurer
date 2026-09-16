@@ -29,6 +29,11 @@ const isRect = (value: unknown): value is {
 const isStringRecord = (value: unknown): value is Record<string, string> =>
   isRecord(value) && Object.values(value).every((entry) => typeof entry === "string")
 
+const isTextStyle = (value: unknown): value is { font: "handwritten" | "code" | "serif" | "sans-serif"; color: string } =>
+  isRecord(value) &&
+  (value.font === "handwritten" || value.font === "code" || value.font === "serif" || value.font === "sans-serif") &&
+  typeof value.color === "string"
+
 const isDomFingerprint = (value: unknown) => {
   if (!isRecord(value)) return false
   return (
@@ -154,6 +159,7 @@ export const normalizeReviewState = (value: unknown): ReviewState | null => {
       updatedAt: isFiniteNumber(value.review.updatedAt) ? value.review.updatedAt : 0,
       comments,
       annotations,
+      ...(isTextStyle(value.review.textStyle) ? { textStyle: value.review.textStyle } : {}),
     },
   }
 }

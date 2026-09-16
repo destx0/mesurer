@@ -5,6 +5,16 @@ export {
 } from "./codec"
 export { createReviewStateFromWorkspace } from "./from-workspace"
 export {
+  captureReviewSnapshot,
+  type ReviewSnapshotCapture,
+  type ReviewSnapshotCaptureOptions,
+} from "./snapshot"
+export {
+  createEphemeralReviewUrl,
+  revokeEphemeralReviewUrl,
+  type EphemeralReviewUrl,
+} from "./ephemeral-url"
+export {
   captureDomContext,
   captureDomFingerprint,
   resolveDomContext,
@@ -13,6 +23,8 @@ export {
 export type { DomContextResolution, DomTargetResolution } from "./dom-fingerprint"
 export { createLocalReviewStateStorage } from "./storage"
 export type { ReviewStateStorage } from "./storage"
+export { loadReviewViewer, saveReviewViewer } from "./viewer-storage"
+export type { CapturedReviewImage } from "./capture"
 export {
   REVIEW_STATE_SCHEMA_VERSION,
 } from "./model"

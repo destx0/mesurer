@@ -1,4 +1,5 @@
 import type { CommentMessage, DistanceOverlay, Guide, Point, Rect } from "../types"
+import type { TextStyleSettings } from "../text-style"
 
 export const REVIEW_STATE_SCHEMA_VERSION = 1
 
@@ -167,6 +168,7 @@ export type Review = {
   updatedAt: number
   comments: ReviewComment[]
   annotations: ReviewAnnotation[]
+  textStyle?: TextStyleSettings
 }
 
 export type ReviewPage = {
