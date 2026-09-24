@@ -15,6 +15,7 @@ const shared: Options = {
   minify: true,
   esbuildOptions: (options) => {
     options.legalComments = "none";
+    options.drop = ["console"];
   },
   outExtension: () => ({
     js: ".js",
