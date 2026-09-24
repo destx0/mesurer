@@ -1,4 +1,16 @@
 import { expect, test } from "@playwright/test";
+import type { SyncTestApi } from "./fixtures/guide-overlay";
+import type {
+  SyncApplyContext,
+  SyncEngineSnapshot,
+  SyncExchangeRequest,
+  SyncOperation,
+  SyncRecord,
+  SyncRemoteOperation,
+} from "../../../../packages/mesurer/core/sync/types";
+
+type SyncTestWindow = Window & { __mesurerSyncTest: SyncTestApi };
+type TestOperation = SyncOperation<Record<string, unknown>>;
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
@@ -6,11 +18,11 @@ test.beforeEach(async ({ page }) => {
 
 test("applies local mutations immediately and synchronizes another client", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const domain = {
-      apply: (state: Record<string, string>, operation: any) => ({
-        state: { ...state, [operation.entityId]: operation.payload.value },
+      apply: (state: Record<string, string>, operation: TestOperation) => ({
+        state: { ...state, [operation.entityId]: String(operation.payload.value) },
       }),
     };
     const first = api.createSyncEngine({
@@ -57,12 +69,12 @@ test("applies local mutations immediately and synchronizes another client", asyn
 
 test("retries an accepted operation without duplicating it", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const baseTransport = server.createTransport();
     let loseFirstAcknowledgement = true;
     const transport = {
-      exchange: async (request: any) => {
+      exchange: async (request: SyncExchangeRequest) => {
         const response = await baseTransport.exchange(request);
         if (loseFirstAcknowledgement) {
           loseFirstAcknowledgement = false;
@@ -77,7 +89,7 @@ test("retries an accepted operation without duplicating it", async ({ page }) =>
       store: api.createMemorySyncStore([]),
       transport,
       domain: {
-        apply: (state: string[], operation: any) => ({
+        apply: (state: string[], operation: TestOperation) => ({
           state: state.includes(operation.id) ? state : [...state, operation.id],
         }),
       },
@@ -109,11 +121,11 @@ test("retries an accepted operation without duplicating it", async ({ page }) =>
 
 test("drains bounded push and pull batches", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer({ pullBatchSize: 2 });
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness({ pullBatchSize: 2 });
     let id = 0;
     const domain = {
-      apply: (state: string[], operation: any) => ({
+      apply: (state: string[], operation: TestOperation) => ({
         state: state.includes(operation.id) ? state : [...state, operation.id],
       }),
     };
@@ -159,10 +171,10 @@ test("drains bounded push and pull batches", async ({ page }) => {
 
 test("keeps scopes isolated", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const domain = {
-      apply: (state: string[], operation: any) => ({
+      apply: (state: string[], operation: TestOperation) => ({
         state: [...state, operation.entityId],
       }),
     };
@@ -194,8 +206,8 @@ test("keeps scopes isolated", async ({ page }) => {
 
 test("records domain conflicts while continuing synchronization", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     server.append({
       id: "remote-operation",
       scope: "workspace-1",
@@ -214,8 +226,8 @@ test("records domain conflicts while continuing synchronization", async ({ page 
       store: api.createMemorySyncStore({ "annotation-1": "local" }),
       transport: server.createTransport(),
       domain: {
-        apply: (state: Record<string, string>, operation: any, context: any) => ({
-          state: { ...state, [operation.entityId]: operation.payload.value },
+        apply: (state: Record<string, string>, operation: TestOperation, context: SyncApplyContext) => ({
+          state: { ...state, [operation.entityId]: String(operation.payload.value) },
           ...(context.source === "remote" && state[operation.entityId]
             ? {
                 conflict: {
@@ -244,12 +256,12 @@ test("records domain conflicts while continuing synchronization", async ({ page 
 
 test("restores optimistic state and pending operations from IndexedDB", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
     const databaseName = `mesurer-sync-test-${crypto.randomUUID()}`;
-    const server = api.createFakeSyncServer();
+    const server = api.createSyncTestHarness();
     const domain = {
-      apply: (state: Record<string, string>, operation: any) => ({
-        state: { ...state, [operation.entityId]: operation.payload.value },
+      apply: (state: Record<string, string>, operation: TestOperation) => ({
+        state: { ...state, [operation.entityId]: String(operation.payload.value) },
       }),
     };
     const firstStore = api.createIndexedDbSyncStore({
@@ -305,8 +317,8 @@ test("restores optimistic state and pending operations from IndexedDB", async ({
 
 test("retries automatically after reconnecting without trusting observers", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const statuses: string[] = [];
     const engine = api.createSyncEngine({
       scope: "workspace-1",
@@ -314,7 +326,7 @@ test("retries automatically after reconnecting without trusting observers", asyn
       store: api.createMemorySyncStore([]),
       transport: server.createTransport(),
       domain: {
-        apply: (state: string[], operation: any) => ({
+        apply: (state: string[], operation: TestOperation) => ({
           state: state.includes(operation.id) ? state : [...state, operation.id],
         }),
       },
@@ -324,7 +336,7 @@ test("retries automatically after reconnecting without trusting observers", asyn
     engine.subscribe(() => {
       throw new Error("Broken observer");
     });
-    engine.subscribe((snapshot: any) => statuses.push(snapshot.status.state));
+    engine.subscribe((snapshot: SyncEngineSnapshot<string[]>) => statuses.push(snapshot.status.state));
     await engine.start();
     server.setOnline(false);
     await engine.mutate({
@@ -351,8 +363,8 @@ test("retries automatically after reconnecting without trusting observers", asyn
 
 test("rebuilds optimistic state in authoritative server order", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     server.append({
       id: "remote-first",
       scope: "workspace-1",
@@ -366,7 +378,7 @@ test("rebuilds optimistic state in authoritative server order", async ({ page })
       schemaVersion: 1,
     });
     const domain = {
-      apply: (state: string, operation: any) => ({ state: operation.payload.value }),
+        apply: (state: string, operation: TestOperation) => ({ state: String(operation.payload.value) }),
     };
     const first = api.createSyncEngine({
       scope: "workspace-1",
@@ -405,8 +417,8 @@ test("rebuilds optimistic state in authoritative server order", async ({ page })
 
 test("never accepts acknowledgements for unsent concurrent mutations", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const base = server.createTransport();
     let releaseFirstRequest: (() => void) | undefined;
     let firstRequestStarted: (() => void) | undefined;
@@ -418,7 +430,7 @@ test("never accepts acknowledgements for unsent concurrent mutations", async ({ 
     });
     let exchanges = 0;
     const transport = {
-      exchange: async (request: any) => {
+      exchange: async (request: SyncExchangeRequest) => {
         exchanges += 1;
         if (exchanges === 1) {
           firstRequestStarted?.();
@@ -439,7 +451,7 @@ test("never accepts acknowledgements for unsent concurrent mutations", async ({ 
       store: api.createMemorySyncStore([]),
       transport,
       domain: {
-        apply: (state: string[], operation: any) => ({
+        apply: (state: string[], operation: TestOperation) => ({
           state: state.includes(operation.id) ? state : [...state, operation.id],
         }),
       },
@@ -453,7 +465,7 @@ test("never accepts acknowledgements for unsent concurrent mutations", async ({ 
     await syncing;
     return {
       snapshot: await engine.getSnapshot(),
-      serverIds: server.getOperations("workspace-1").map((item: any) => item.operation.id),
+      serverIds: server.getOperations("workspace-1").map((item: SyncRemoteOperation) => item.operation.id),
       exchanges,
     };
   });
@@ -465,14 +477,14 @@ test("never accepts acknowledgements for unsent concurrent mutations", async ({ 
 
 test("backs off when a transport makes no progress", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
     let exchanges = 0;
     const engine = api.createSyncEngine({
       scope: "workspace-1",
       clientId: "client-a",
       store: api.createMemorySyncStore([]),
       transport: {
-        exchange: async (request: any) => {
+        exchange: async (request: SyncExchangeRequest) => {
           exchanges += 1;
           return {
             acknowledgedOperationIds: [],
@@ -483,7 +495,7 @@ test("backs off when a transport makes no progress", async ({ page }) => {
         },
       },
       domain: {
-        apply: (state: string[], operation: any) => ({ state: [...state, operation.id] }),
+        apply: (state: string[], operation: TestOperation) => ({ state: [...state, operation.id] }),
       },
       createOperationId: () => "operation-1",
     });
@@ -501,102 +513,10 @@ test("backs off when a transport makes no progress", async ({ page }) => {
   expect(result.snapshot.status.state).toBe("error");
 });
 
-test("adapts the exchange protocol to an authenticated REST endpoint", async ({ page }) => {
-  const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    let received: any;
-    const transport = api.createRestSyncTransport({
-      url: "/api/sync",
-      headers: async () => ({ authorization: "Bearer test-token" }),
-      fetch: async (url: string, init: RequestInit) => {
-        received = {
-          url,
-          method: init.method,
-          authorization: new Headers(init.headers).get("authorization"),
-          contentType: new Headers(init.headers).get("content-type"),
-          body: JSON.parse(String(init.body)),
-        };
-        return new Response(JSON.stringify({
-          acknowledgedOperationIds: ["operation-1"],
-          operations: [],
-          cursor: 4,
-          hasMore: false,
-        }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        });
-      },
-    });
-    const response = await transport.exchange({
-      scope: "workspace-1",
-      clientId: "client-a",
-      cursor: 3,
-      operations: [],
-    });
-    return { received, response };
-  });
-
-  expect(result.received).toEqual({
-    url: "/api/sync",
-    method: "POST",
-    authorization: "Bearer test-token",
-    contentType: "application/json",
-    body: {
-      scope: "workspace-1",
-      clientId: "client-a",
-      cursor: 3,
-      operations: [],
-    },
-  });
-  expect(result.response.cursor).toBe(4);
-});
-
-test("classifies REST protocol and server failures", async ({ page }) => {
-  const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const exchange = async (status: number, body: unknown) => {
-      const transport = api.createRestSyncTransport({
-        url: "/api/sync",
-        fetch: async () => new Response(JSON.stringify(body), {
-          status,
-          headers: { "content-type": "application/json" },
-        }),
-      });
-      return transport.exchange({
-        scope: "workspace-1",
-        clientId: "client-a",
-        cursor: 0,
-        operations: [],
-      }).then(
-        () => null,
-        (error: any) => ({ message: error.message, retryable: error.retryable }),
-      );
-    };
-    return {
-      unavailable: await exchange(503, {}),
-      unauthorized: await exchange(401, {}),
-      invalid: await exchange(200, { cursor: "wrong" }),
-    };
-  });
-
-  expect(result.unavailable).toEqual({
-    message: "Sync request failed with status 503",
-    retryable: true,
-  });
-  expect(result.unauthorized).toEqual({
-    message: "Sync request failed with status 401",
-    retryable: false,
-  });
-  expect(result.invalid).toEqual({
-    message: "Sync server returned an invalid response",
-    retryable: false,
-  });
-});
-
 test("does not lose a sync request during final status publication", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const memory = api.createMemorySyncStore([]);
     let reads = 0;
     let releaseFinalRead: (() => void) | undefined;
@@ -625,7 +545,7 @@ test("does not lose a sync request during final status publication", async ({ pa
       store,
       transport: server.createTransport(),
       domain: {
-        apply: (state: string[], operation: any) => ({
+        apply: (state: string[], operation: TestOperation) => ({
           state: state.includes(operation.id) ? state : [...state, operation.id],
         }),
       },
@@ -640,7 +560,7 @@ test("does not lose a sync request during final status publication", async ({ pa
     await Promise.all([firstSync, secondSync]);
     return {
       pending: (await engine.getSnapshot()).pending,
-      serverIds: server.getOperations("workspace-1").map((item: any) => item.operation.id),
+      serverIds: server.getOperations("workspace-1").map((item: SyncRemoteOperation) => item.operation.id),
     };
   });
 
@@ -650,8 +570,8 @@ test("does not lose a sync request during final status publication", async ({ pa
 
 test("does not schedule a retry after stop", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
-    const server = api.createFakeSyncServer();
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const server = api.createSyncTestHarness();
     const base = server.createTransport();
     let exchanges = 0;
     const engine = api.createSyncEngine({
@@ -659,18 +579,18 @@ test("does not schedule a retry after stop", async ({ page }) => {
       clientId: "client-a",
       store: api.createMemorySyncStore([]),
       transport: {
-        exchange: async (request: any) => {
+        exchange: async (request: SyncExchangeRequest) => {
           exchanges += 1;
           return base.exchange(request);
         },
       },
       domain: {
-        apply: (state: string[], operation: any) => ({ state: [...state, operation.id] }),
+        apply: (state: string[], operation: TestOperation) => ({ state: [...state, operation.id] }),
       },
       retry: { initialDelayMs: 5, maxDelayMs: 5, maxAttempts: 10 },
       createOperationId: () => "operation-1",
     });
-    engine.subscribe((snapshot: any) => {
+    engine.subscribe((snapshot: SyncEngineSnapshot<string[]>) => {
       if (snapshot.status.state === "retrying") engine.stop();
     });
     await engine.start();
@@ -686,7 +606,7 @@ test("does not schedule a retry after stop", async ({ page }) => {
 
 test("rejects IndexedDB records reused across sync identities", async ({ page }) => {
   const result = await page.evaluate(async () => {
-    const api = (window as any).__mesurerSyncTest;
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
     const databaseName = `mesurer-sync-identity-${crypto.randomUUID()}`;
     const first = api.createIndexedDbSyncStore({
       databaseName,
@@ -695,7 +615,7 @@ test("rejects IndexedDB records reused across sync identities", async ({ page })
       clientId: "client-a",
       initialState: { owner: "a" },
     });
-    await first.transact((record: any) => ({
+    await first.transact((record: SyncRecord<{ owner: string }>) => ({
       record: { ...record, state: { owner: "account-a" } },
       value: null,
     }));
@@ -717,4 +637,23 @@ test("rejects IndexedDB records reused across sync identities", async ({ page })
   });
 
   expect(result).toBe("IndexedDB sync record identity does not match the requested scope");
+});
+
+test("keeps monotonic revision metadata in the existing local persistence", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const first = api.createLocalStoragePersistence(window, "sync-revision-test");
+    first.saveSettings({ theme: "light" });
+    const firstRevision = first.load()?.revision;
+    first.saveSettings({ theme: "dark" });
+    const secondRevision = first.load()?.revision;
+    first.clearSettings();
+    window.localStorage.removeItem("sync-revision-test");
+    return { firstRevision, secondRevision };
+  });
+
+  expect(result.firstRevision.counter).toBe(1);
+  expect(result.secondRevision.counter).toBe(2);
+  expect(result.firstRevision.writerId).toBe(result.secondRevision.writerId);
+  expect(result.firstRevision.mutationId).not.toBe(result.secondRevision.mutationId);
 });

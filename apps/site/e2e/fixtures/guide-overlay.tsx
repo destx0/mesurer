@@ -13,14 +13,38 @@ import {
   resolveDomFingerprint,
   serializeReviewState,
 } from "../../../../packages/mesurer/core/review";
+import { createLocalStoragePersistence } from "../../../../packages/mesurer/core/persistence";
 import {
-  createFakeSyncServer,
   createIndexedDbSyncStore,
   createMemorySyncStore,
-  createRestSyncTransport,
   createSyncEngine,
-  SyncTransportError,
 } from "../../../../packages/mesurer/core/sync";
+import { SyncTransportError } from "../../../../packages/mesurer/core/sync/types";
+import { createSyncTestHarness } from "./sync-harness";
+
+export type SyncTestApi = {
+  createSyncTestHarness: typeof createSyncTestHarness;
+  createIndexedDbSyncStore: typeof createIndexedDbSyncStore;
+  createLocalStoragePersistence: typeof createLocalStoragePersistence;
+  createMemorySyncStore: typeof createMemorySyncStore;
+  createSyncEngine: typeof createSyncEngine;
+  SyncTransportError: typeof SyncTransportError;
+};
+
+export type CommentTargetTestApi = {
+  captureCommentTarget: typeof captureCommentTarget;
+  resolveCommentTarget: typeof resolveCommentTarget;
+};
+
+export type ReviewStateTestApi = {
+  captureDomFingerprint: typeof captureDomFingerprint;
+  captureReviewSnapshot: typeof captureReviewSnapshot;
+  createEphemeralReviewUrl: typeof createEphemeralReviewUrl;
+  createLocalReviewStateStorage: typeof createLocalReviewStateStorage;
+  deserializeReviewState: typeof deserializeReviewState;
+  resolveDomFingerprint: typeof resolveDomFingerprint;
+  serializeReviewState: typeof serializeReviewState;
+};
 
 export type ActiveTabTestApi = {
   createActiveTabRegistry: typeof createActiveTabRegistry;
@@ -41,10 +65,10 @@ Object.assign(window, {
     serializeReviewState,
   },
   __mesurerSyncTest: {
-    createFakeSyncServer,
+    createSyncTestHarness,
     createIndexedDbSyncStore,
+    createLocalStoragePersistence,
     createMemorySyncStore,
-    createRestSyncTransport,
     createSyncEngine,
     SyncTransportError,
   },

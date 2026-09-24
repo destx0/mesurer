@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import type { CommentTargetTestApi } from "./fixtures/guide-overlay";
+
+type CommentTargetTestWindow = Window & { __mesurerCommentTargetTest: CommentTargetTestApi };
 
 const activateComments = async (page: Page) => {
   const annotate = page.getByRole("button", { name: "Annotate tools (2)" });
@@ -514,13 +517,13 @@ test("resolves a persisted target inside an open Shadow DOM root", async ({ page
   const target = await page.evaluate((point) => {
     const button = document.querySelector("[data-testid='shadow-comment-host']")?.shadowRoot?.querySelector("button");
     if (!button) throw new Error("Expected Shadow DOM button");
-    return (window as any).__mesurerCommentTargetTest.captureCommentTarget(button, point, window);
+    return (window as CommentTargetTestWindow).__mesurerCommentTargetTest.captureCommentTarget(button, point, window);
   }, { x: shadowBox!.x + shadowBox!.width / 2, y: shadowBox!.y + shadowBox!.height / 2 });
   expect(target.shadowPath).toEqual(["div#shadow-comment-host"]);
   await page.reload();
 
   await expect.poll(() => page.evaluate((persistedTarget) => {
-    const element = (window as any).__mesurerCommentTargetTest.resolveCommentTarget(persistedTarget);
+    const element = (window as CommentTargetTestWindow).__mesurerCommentTargetTest.resolveCommentTarget(persistedTarget);
     return element?.textContent;
   }, target)).toBe("Shadow comment button");
 });
@@ -537,7 +540,7 @@ test("resolves targets in distinct ID-less Shadow DOM hosts", async ({ page }) =
       root.append(button);
       return button;
     });
-    const testApi = (window as any).__mesurerCommentTargetTest;
+    const testApi = (window as CommentTargetTestWindow).__mesurerCommentTargetTest;
     return buttons.map((button) => {
       const target = testApi.captureCommentTarget(button, { x: 0, y: 0 }, window);
       return { path: target.shadowPath, text: testApi.resolveCommentTarget(target)?.textContent };

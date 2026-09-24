@@ -139,13 +139,6 @@ Props are the defaults. Saved settings override them; **Use defaults** restores 
 
 Settings are stored separately from workspace state. The default adapter uses `localStorage`; integrations can provide a `persistence` adapter such as the browser extension's `chrome.storage.local` implementation.
 
-## Optional sync engine
-
-The package exports an opt-in local-first sync engine with in-memory and
-IndexedDB journals, a deterministic fake server, and a generic REST transport.
-It does not run automatically or change Mesurer's existing local persistence.
-See [SYNC.md](./SYNC.md) for the client API and backend exchange protocol.
-
 ## License
 
 Licensed under the MIT License.

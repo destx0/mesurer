@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import type { ReviewStateTestApi } from "./fixtures/guide-overlay";
+
+type ReviewStateTestWindow = Window & { __mesurerReviewStateTest: ReviewStateTestApi };
 
 const state = {
   schemaVersion: 1 as const,
@@ -62,7 +65,7 @@ test("serializes and restores a review state through local storage", async ({ pa
   await page.goto("/e2e/fixtures/guide-overlay.html");
 
   const result = await page.evaluate((value) => {
-    const api = (window as any).__mesurerReviewStateTest;
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
     const storage = api.createLocalReviewStateStorage(window);
     storage.save("review:test", value);
     const restored = storage.load("review:test");
@@ -84,7 +87,7 @@ test("captures a DOM fingerprint and reattaches after replacement", async ({ pag
   await page.goto("/e2e/fixtures/guide-overlay.html");
 
   const result = await page.evaluate(() => {
-    const api = (window as any).__mesurerReviewStateTest;
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
     const element = document.querySelector("button");
     if (!element) throw new Error("Expected fixture target");
     const fingerprint = api.captureDomFingerprint(element);
@@ -139,7 +142,7 @@ test("captures the visible tab while hiding only interactive comments", async ({
   await expect(overlay).toBeAttached();
 
   const result = await overlay.evaluate(async (overlay) => {
-    const api = (window as any).__mesurerReviewStateTest;
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
     const commentLayer = document.createElement("div");
     commentLayer.setAttribute("data-mesurer-comments-layer", "");
     overlay.append(commentLayer);
@@ -174,7 +177,7 @@ test("captures the full document with SnapDOM without scrolling", async ({ page 
   await expect(overlay).toBeAttached();
 
   const result = await overlay.evaluate(async (overlay) => {
-    const api = (window as any).__mesurerReviewStateTest;
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
     document.body.style.height = "1800px";
     window.scrollTo(0, 240);
     const snapshot = await api.captureReviewSnapshot({
@@ -194,7 +197,7 @@ test("captures the full document with SnapDOM without scrolling", async ({ page 
 test("opens a temporary viewer containing the screenshot and review state", async ({ page, context }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   const url = await page.evaluate(async (value) => {
-    const api = (window as any).__mesurerReviewStateTest;
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
     const png = await fetch("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=").then((response) => response.blob());
     const result = await api.createEphemeralReviewUrl(value, {
       blob: png,

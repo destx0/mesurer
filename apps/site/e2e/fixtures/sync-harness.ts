@@ -4,34 +4,32 @@ import type {
   SyncOperation,
   SyncRemoteOperation,
   SyncTransport,
-} from "./types"
-import { SyncTransportError } from "./types"
+} from "../../../../packages/mesurer/core/sync/types"
+import { SyncTransportError } from "../../../../packages/mesurer/core/sync/types"
 
 type StoredOperation = SyncRemoteOperation & { scope: string }
 
-export type FakeSyncServerOptions = {
+type SyncTestHarnessOptions = {
   pullBatchSize?: number
 }
 
-export type FakeSyncServer = {
+export type SyncTestHarness = {
   createTransport: () => SyncTransport
   setOnline: (online: boolean) => void
-  failNext: (count?: number) => void
   append: (operation: SyncOperation) => void
   getOperations: (scope: string) => SyncRemoteOperation[]
 }
 
-export const createFakeSyncServer = ({
+export const createSyncTestHarness = ({
   pullBatchSize = 100,
-}: FakeSyncServerOptions = {}): FakeSyncServer => {
+}: SyncTestHarnessOptions = {}): SyncTestHarness => {
   if (!Number.isInteger(pullBatchSize) || pullBatchSize <= 0) {
-    throw new Error("Fake sync server pull batch size must be a positive integer")
+    throw new Error("Sync test pull batch size must be a positive integer")
   }
   const operations: StoredOperation[] = []
   const operationsById = new Map<string, SyncOperation>()
   let nextServerSequence = 1
   let online = true
-  let remainingFailures = 0
 
   const append = (operation: SyncOperation) => {
     const key = `${operation.scope}\u0000${operation.id}`
@@ -52,11 +50,7 @@ export const createFakeSyncServer = ({
   }
 
   const exchange = async (request: SyncExchangeRequest): Promise<SyncExchangeResponse> => {
-    if (!online) throw new SyncTransportError("Fake sync server is offline")
-    if (remainingFailures > 0) {
-      remainingFailures -= 1
-      throw new SyncTransportError("Injected sync failure")
-    }
+    if (!online) throw new SyncTransportError("Sync test harness is offline")
 
     for (const operation of request.operations) {
       if (operation.scope !== request.scope) {
@@ -88,9 +82,6 @@ export const createFakeSyncServer = ({
     createTransport: () => ({ exchange }),
     setOnline: (next) => {
       online = next
-    },
-    failNext: (count = 1) => {
-      remainingFailures += count
     },
     append,
     getOperations: (scope) => structuredClone(
