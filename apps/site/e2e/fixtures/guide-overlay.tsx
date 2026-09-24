@@ -13,6 +13,14 @@ import {
   resolveDomFingerprint,
   serializeReviewState,
 } from "../../../../packages/mesurer/core/review";
+import {
+  createFakeSyncServer,
+  createIndexedDbSyncStore,
+  createMemorySyncStore,
+  createRestSyncTransport,
+  createSyncEngine,
+  SyncTransportError,
+} from "../../../../packages/mesurer/core/sync";
 
 export type ActiveTabTestApi = {
   createActiveTabRegistry: typeof createActiveTabRegistry;
@@ -31,6 +39,14 @@ Object.assign(window, {
     deserializeReviewState,
     resolveDomFingerprint,
     serializeReviewState,
+  },
+  __mesurerSyncTest: {
+    createFakeSyncServer,
+    createIndexedDbSyncStore,
+    createMemorySyncStore,
+    createRestSyncTransport,
+    createSyncEngine,
+    SyncTransportError,
   },
 });
 
