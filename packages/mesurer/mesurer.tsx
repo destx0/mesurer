@@ -12,6 +12,8 @@ import { DEFAULT_TEXT_STYLE } from "./core/text-style";
 import { resolveMesurerFeatures } from "./core/features";
 import { isResponsivePreview } from "./core/responsive";
 import { holdPreviewSideEffects } from "./core/preview-guard";
+import type { ThemeMode } from "./core/persistence";
+import { restoreReviewWorkspace } from "./core/review";
 
 export type { MesurerProps } from "./mesurer-client";
 
@@ -48,6 +50,7 @@ export function MesurerUnstyled({
   extensionRecordingPlayer,
   features,
   initialState,
+  reviewState,
 }: MesurerProps) {
   const resolvedPortalTarget =
     portalTarget ?? (typeof document !== "undefined" ? document.body : undefined);
@@ -62,6 +65,10 @@ export function MesurerUnstyled({
     holdPreviewSideEffects(window);
     return null;
   }
+
+  const restoredReviewState = reviewState
+    ? restoreReviewWorkspace(reviewState, resolvedPortalTarget?.ownerDocument ?? document)
+    : undefined;
 
   return (
     <MesurerClient
@@ -86,14 +93,14 @@ export function MesurerUnstyled({
       multiMeasureEnabled={multiMeasureEnabled}
       guideStyle={{ ...DEFAULT_GUIDE_STYLE, ...guideStyle }}
       rulerSettings={{ ...DEFAULT_RULER_SETTINGS, ...rulerSettings }}
-      textStyle={{ ...DEFAULT_TEXT_STYLE, ...textStyle }}
+      textStyle={{ ...DEFAULT_TEXT_STYLE, ...reviewState?.review.workspace?.textStyle, ...textStyle }}
       persistence={persistence}
       onPersistenceError={onPersistenceError}
       captureVisibleTab={captureVisibleTab}
       extensionRecording={extensionRecording}
       extensionRecordingPlayer={extensionRecordingPlayer}
       features={resolveMesurerFeatures(features)}
-      initialState={initialState}
+      initialState={{ ...restoredReviewState, ...initialState }}
       portalTarget={resolvedPortalTarget ?? document.body}
     />
   );

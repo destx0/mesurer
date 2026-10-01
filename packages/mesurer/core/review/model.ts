@@ -1,5 +1,16 @@
-import type { CommentMessage, DistanceOverlay, Guide, Point, Rect } from "../types"
+import type {
+  Arrow,
+  CommentMessage,
+  DistanceOverlay,
+  Guide,
+  Measurement,
+  PenStroke,
+  Point,
+  Rect,
+  TextAnnotation as BaseTextAnnotation,
+} from "../types"
 import type { TextStyleSettings } from "../text-style"
+import type { LayoutGuide } from "../layout-guides"
 
 export const REVIEW_STATE_SCHEMA_VERSION = 1
 
@@ -82,25 +93,9 @@ export type ReviewComment = {
   updatedAt: number
 }
 
-export type ArrowAnnotation = {
-  type: "arrow"
-  id: string
-  start: Point
-  end: Point
-  control?: Point
-  color: string
-  width: number
-  rotation?: number
-}
+export type ArrowAnnotation = Arrow & { type: "arrow" }
 
-export type PenAnnotation = {
-  type: "pen"
-  id: string
-  points: Point[]
-  color: string
-  width: number
-  rotation?: number
-}
+export type PenAnnotation = PenStroke & { type: "pen" }
 
 export type RectangleAnnotation = {
   type: "rectangle"
@@ -111,43 +106,26 @@ export type RectangleAnnotation = {
   rotation?: number
 }
 
-export type TextAnnotation = {
-  type: "text"
-  id: string
-  x: number
-  y: number
-  text: string
-  scale?: number
-  rotation?: number
-  boxWidth?: number
-}
+export type TextAnnotation = BaseTextAnnotation & { type: "text" }
 
-export type MeasurementAnnotation = {
+export type ReviewMeasurement = Omit<Measurement, "elementRef">
+
+export type MeasurementAnnotation = ReviewMeasurement & {
   type: "measurement"
   kind: "element"
-  id: string
-  rect: Rect
-  normalizedRect: Rect
   targetId?: DomTargetId
 }
 
-export type DistanceMeasurementAnnotation = {
+export type ReviewDistance = Omit<DistanceOverlay, "elementRefA" | "elementRefB" | "pinTargetRef">
+
+export type DistanceMeasurementAnnotation = ReviewDistance & {
   type: "measurement"
   kind: "distance"
-  id: string
-  guideIds?: Array<string | null>
-  rectA: Rect
-  rectB: Rect
-  normalizedRectA: Rect
-  normalizedRectB: Rect
   targetIds?: {
     a?: DomTargetId
     b?: DomTargetId
     pin?: DomTargetId
   }
-  horizontal: DistanceOverlay["horizontal"]
-  vertical: DistanceOverlay["vertical"]
-  connectors: DistanceOverlay["connectors"]
 }
 
 export type GuideAnnotation = Guide & { type: "guide" }
@@ -161,6 +139,18 @@ export type ReviewAnnotation =
   | DistanceMeasurementAnnotation
   | GuideAnnotation
 
+export type ReviewWorkspace = {
+  guides: Guide[]
+  arrows: Arrow[]
+  penStrokes: PenStroke[]
+  textAnnotations: BaseTextAnnotation[]
+  measurements: ReviewMeasurement[]
+  heldDistances: ReviewDistance[]
+  comments: ReviewComment[]
+  layoutGuides: LayoutGuide[]
+  textStyle?: TextStyleSettings
+}
+
 export type Review = {
   id: ReviewId
   pageId: PageId
@@ -169,6 +159,7 @@ export type Review = {
   comments: ReviewComment[]
   annotations: ReviewAnnotation[]
   textStyle?: TextStyleSettings
+  workspace?: ReviewWorkspace
 }
 
 export type ReviewPage = {

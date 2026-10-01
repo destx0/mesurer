@@ -1,5 +1,5 @@
 import type { MesurerStoredWorkspace } from "../persistence"
-import type { CommentTarget } from "../types"
+import type { CommentTarget, DistanceOverlay, Measurement } from "../types"
 import type { TextStyleSettings } from "../text-style"
 import { captureDomFingerprint } from "./dom-fingerprint"
 import type {
@@ -10,6 +10,8 @@ import type {
   ReviewComment,
   ReviewPage,
   ReviewProject,
+  ReviewDistance,
+  ReviewMeasurement,
   ReviewState,
 } from "./model"
 
@@ -44,6 +46,15 @@ const commentTargetToFingerprint = (target: CommentTarget): DomFingerprint => ({
   bounds: target.rect,
   styles: stylesToRecord(target.styles),
 })
+
+const stripMeasurement = ({ elementRef, ...measurement }: Measurement): ReviewMeasurement => measurement
+
+const stripDistance = ({
+  elementRefA,
+  elementRefB,
+  pinTargetRef,
+  ...distance
+}: DistanceOverlay): ReviewDistance => distance
 
 export const createReviewStateFromWorkspace = ({
   project,
@@ -120,6 +131,17 @@ export const createReviewStateFromWorkspace = ({
     comments,
     annotations,
     textStyle: workspace.textStyle,
+    workspace: {
+      guides: workspace.guides,
+      arrows: workspace.arrows,
+      penStrokes: workspace.penStrokes,
+      textAnnotations: workspace.textAnnotations,
+      measurements: workspace.measurements.map(stripMeasurement),
+      heldDistances: workspace.heldDistances.map(stripDistance),
+      comments,
+      layoutGuides: workspace.layoutGuides ?? [],
+      ...(workspace.textStyle ? { textStyle: workspace.textStyle } : {}),
+    },
   }
 
   return {

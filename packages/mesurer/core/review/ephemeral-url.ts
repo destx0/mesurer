@@ -74,6 +74,9 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
     .stage { position: relative; width: min(100%, 1440px); margin: 0 auto; overflow: hidden; background: white; box-shadow: 0 12px 40px rgba(24,24,27,.12); }
     .stage img { display: block; width: 100%; height: auto; }
     .annotations { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .layout-guides { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .layout-guide { position: absolute; display: grid; pointer-events: none; }
+    .layout-guide > i { display: block; background: var(--guide-color); opacity: var(--guide-opacity); }
     .text-annotations { position: absolute; inset: 0; pointer-events: none; }
     .annotation-text { position: absolute; white-space: pre-wrap; pointer-events: none; transform-origin: center center; }
     .comments { position: absolute; inset: 0; pointer-events: none; }
@@ -96,7 +99,7 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
 <body>
   <header><strong id="title">Mesurer review</strong><span id="meta"></span></header>
   <main>
-    <section class="stage" id="stage"><img id="screenshot" alt="Captured Mesurer review snapshot"><svg class="annotations" id="annotations" aria-label="Review annotations"></svg><div class="text-annotations" id="text-annotations"></div><div class="comments" id="comments"></div></section>
+    <section class="stage" id="stage"><img id="screenshot" alt="Captured Mesurer review snapshot"><div class="layout-guides" id="layout-guides"></div><svg class="annotations" id="annotations" aria-label="Review annotations"></svg><div class="text-annotations" id="text-annotations"></div><div class="comments" id="comments"></div></section>
     <details><summary>Review state</summary><pre id="state"></pre></details>
   </main>
   <script>
@@ -112,6 +115,7 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
       const snapshot = version.snapshot;
       const screenshot = document.getElementById("screenshot");
       const annotations = document.getElementById("annotations");
+      const layoutGuides = document.getElementById("layout-guides");
       const textAnnotations = document.getElementById("text-annotations");
       const comments = document.getElementById("comments");
       const title = document.getElementById("title");
@@ -124,6 +128,42 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
       const width = snapshot.viewport.width || 1;
       const height = snapshot.viewport.height || 1;
       annotations.setAttribute("viewBox", "0 0 " + width + " " + height);
+      (state.review.workspace?.layoutGuides || []).filter((guide) => guide.visible).forEach((guide) => {
+        const element = document.createElement("div");
+        element.className = "layout-guide";
+        element.style.setProperty("--guide-color", guide.color);
+        element.style.setProperty("--guide-opacity", String(guide.opacity));
+        const horizontal = guide.kind === "rows";
+        const grid = guide.kind === "grid";
+        const size = Math.max(0, guide.size);
+        const dimension = horizontal ? "height" : "width";
+        if (guide.align !== "stretch" && !grid) {
+          element.style[dimension] = Math.min(size, horizontal ? height : width) + "px";
+          element.style[horizontal ? "width" : "height"] = "100%";
+          element.style[horizontal ? "left" : "top"] = "0";
+          element.style[horizontal ? "top" : "left"] = guide.align === "center"
+            ? "calc(50% - " + Math.min(size, horizontal ? height : width) / 2 + "px)"
+            : guide.align === "max"
+              ? "calc(100% - " + Math.min(size, horizontal ? height : width) + "px)"
+              : "0";
+        } else {
+          element.style.inset = "0";
+        }
+        element.style.gap = guide.gutter + "px";
+        if (grid) {
+          element.style.gridTemplateColumns = "repeat(" + guide.count + ", minmax(0, 1fr))";
+          element.style.gridTemplateRows = "repeat(" + guide.count + ", minmax(0, 1fr))";
+        } else if (horizontal) {
+          element.style.gridTemplateRows = "repeat(" + guide.count + ", minmax(0, 1fr))";
+          element.style.gridTemplateColumns = "1fr";
+        } else {
+          element.style.gridTemplateColumns = "repeat(" + guide.count + ", minmax(0, 1fr))";
+          element.style.gridTemplateRows = "1fr";
+        }
+        const cells = grid ? guide.count * guide.count : guide.count;
+        for (let index = 0; index < cells; index += 1) element.append(document.createElement("i"));
+        layoutGuides.append(element);
+      });
       const svg = (name, attributes) => {
         const element = document.createElementNS("http://www.w3.org/2000/svg", name);
         Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, String(value)));
@@ -149,7 +189,13 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
          const ny = tx;
          return (end.x - tx * length + nx * wing) + "," + (end.y - ty * length + ny * wing) + " " + end.x + "," + end.y + " " + (end.x - tx * length - nx * wing) + "," + (end.y - ty * length - ny * wing);
        };
-       state.review.annotations.forEach((annotation) => {
+       const reviewAnnotations = [...state.review.annotations];
+       state.review.workspace?.heldDistances.forEach((distance) => {
+         if (!reviewAnnotations.some((annotation) => annotation.type === "measurement" && annotation.kind === "distance" && annotation.id === distance.id)) {
+           reviewAnnotations.push({ type: "measurement", kind: "distance", ...distance });
+         }
+       });
+       reviewAnnotations.forEach((annotation) => {
          if (annotation.type === "arrow") {
            const control = annotation.control || midpoint(annotation.start, annotation.end);
            const bezierControl = { x: 2 * control.x - (annotation.start.x + annotation.end.x) / 2, y: 2 * control.y - (annotation.start.y + annotation.end.y) / 2 };

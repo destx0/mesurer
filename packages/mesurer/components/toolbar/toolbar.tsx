@@ -43,7 +43,6 @@ import {
   MesurerMarkIcon,
   RulerIcon,
   RulersIcon,
-  SaveIcon,
   TextIcon,
   XrayIcon,
   CommentIcon,
@@ -96,8 +95,6 @@ function ToolbarComponent(
     features,
     openMenu,
     setOpenMenu,
-    onSaveReview,
-    reviewSaveStatus = "idle",
   }: ToolbarProps,
   ref: Ref<HTMLDivElement>,
 ) {
@@ -1012,21 +1009,6 @@ function ToolbarComponent(
                             <ToolbarDivider />
                             <ToolbarGroup label="Capture and settings" className="msr:px-1">
                               <div ref={captureAnchorRef} className="mesurer-toolbar-flow mesurer-toolbar-caret-anchor msr:relative msr:flex msr:flex-none">
-                                <ToolbarButton
-                                  id="review-state"
-                                  active={false}
-                                  label="Save review"
-                                  onClick={() => void onSaveReview()}
-                                  tooltip={toolbarTooltip}
-                                  tooltipVisible={tooltipsEnabled && visibleTooltipId === "review-state"}
-                                >
-                                  <SaveIcon size={20} />
-                                </ToolbarButton>
-                                {reviewSaveStatus !== "idle" ? (
-                                  <span role="status" className="msr:flex msr:items-center msr:px-1 msr:text-[11px]" aria-live="polite">
-                                    {reviewSaveStatus === "saving" ? "Saving..." : reviewSaveStatus === "saved" ? "Saved" : "Save failed"}
-                                  </span>
-                                ) : null}
                                 {features.screenshot ? (
                                   <>
                                     <ToolbarButton

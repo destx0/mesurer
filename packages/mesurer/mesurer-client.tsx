@@ -149,6 +149,7 @@ export type MesurerProps = {
   extensionRecording?: ExtensionRecordingSession;
   extensionRecordingPlayer?: string;
   features?: MesurerFeatures;
+  reviewState?: import("./core/review").ReviewState;
   initialState?: {
     enabled?: boolean;
     minimized?: boolean;
@@ -203,6 +204,7 @@ export function MesurerClient({
   extensionRecordingPlayer,
   features,
   initialState,
+  reviewState,
 }: Required<
   Omit<
     MesurerProps,
@@ -218,6 +220,7 @@ export function MesurerClient({
     | "extensionRecordingPlayer"
     | "features"
     | "initialState"
+    | "reviewState"
   >
 > &
   Pick<
@@ -230,6 +233,7 @@ export function MesurerClient({
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "initialState"
+    | "reviewState"
   > & {
     guideStyle: GuideStyle;
     rulerSettings: RulerSettings;
@@ -260,7 +264,7 @@ export function MesurerClient({
   const applyingExternalPersistenceRef = useRef(false);
   const persistCommentsRef = useRef<(comments: CommentThread[]) => void>(() => {});
   const workspace = useMesurerWorkspaceState({
-    persistedState,
+    persistedState: reviewState ? null : persistedState,
     initialToolMode: persistedSettings.lastToolMode ?? "select",
     snapEnabledDefault: persistedSettings.snapEnabled ?? snapEnabledDefault,
     snapGuidesEnabledDefault:
@@ -274,7 +278,7 @@ export function MesurerClient({
     multiMeasureEnabledDefault:
       persistedSettings.multiMeasureEnabled ?? multiMeasureEnabledDefault,
     initialState,
-    initialComments: persistedState?.comments ?? initialState?.comments,
+    initialComments: reviewState ? initialState?.comments : persistedState?.comments ?? initialState?.comments,
     onCommentsChange: (value) => persistCommentsRef.current(value),
   });
   const [commentFilter, setCommentFilter] = useState<CommentFilter>("open");
@@ -644,6 +648,7 @@ export function MesurerClient({
         reviewId: `local-review-${now}`,
         workspace: {
           enabled,
+          minimized,
           xrayVisible,
           toolMode,
           rulersVisible,
@@ -660,6 +665,7 @@ export function MesurerClient({
           activeMeasurement,
           heldDistances,
           comments: reviewComments,
+          layoutGuides,
           textStyle: settings.textStyle,
         },
         now,
@@ -703,7 +709,9 @@ export function MesurerClient({
     guideOrientation,
     guides,
     heldDistances,
+    layoutGuides,
     measurements,
+    minimized,
     ownerDocument,
     ownerWindow,
     overlayRef,
@@ -1000,6 +1008,7 @@ export function MesurerClient({
     screenshot,
     setEnabledWithHistory,
     setLayoutGuidesWithHistory,
+    setLayoutGuidesVisible,
     setOpenMenu,
     setSettingsOpen,
   ]);
@@ -2000,14 +2009,14 @@ export function MesurerClient({
                 onMinimize: minimizeMesurer,
                 onResetSettings: resetSettings,
                 onClearWorkspace: clearWorkspace,
+                onSaveReview: saveReview,
+                reviewSaveStatus,
               }}
             />
           ),
         },
         openMenu,
         setOpenMenu,
-        onSaveReview: saveReview,
-        reviewSaveStatus,
       }}
     />
   );

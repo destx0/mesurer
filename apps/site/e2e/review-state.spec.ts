@@ -1,7 +1,16 @@
 import { expect, test } from "@playwright/test";
 import type { ReviewStateTestApi } from "./fixtures/guide-overlay";
+import type { ReviewState } from "../../../packages/mesurer/core/review";
 
 type ReviewStateTestWindow = Window & { __mesurerReviewStateTest: ReviewStateTestApi };
+
+const openReviewSettings = async (page: import("@playwright/test").Page) => {
+  const saveReview = page.getByRole("button", { name: "Save review" });
+  if (!(await saveReview.isVisible())) {
+    await page.getByRole("button", { name: /Settings/ }).click();
+  }
+  return saveReview;
+};
 
 const state = {
   schemaVersion: 1 as const,
@@ -61,6 +70,24 @@ const state = {
   },
 };
 
+const stateWithWorkspace: ReviewState = {
+  ...state,
+  review: {
+    ...state.review,
+    workspace: {
+      guides: [{ id: "guide-1", orientation: "vertical", position: 96 }],
+      arrows: [{ id: "arrow-1", start: { x: 20, y: 20 }, end: { x: 180, y: 120 }, color: "#ff0000", width: 2 }],
+      penStrokes: [{ id: "pen-1", points: [{ x: 10, y: 10 }, { x: 40, y: 40 }], color: "#0d99ff", width: 2 }],
+      textAnnotations: [{ id: "text-1", x: 240, y: 140, text: "Styled note", scale: 1.5 }],
+      measurements: [{ id: "measurement-1", rect: { left: 10, top: 20, width: 30, height: 40 }, normalizedRect: { left: 10, top: 20, width: 30, height: 40 }, deltaX: 3, deltaY: 4, snapped: true }],
+      heldDistances: [{ id: "distance-1", rectA: { left: 10, top: 10, width: 10, height: 10 }, rectB: { left: 40, top: 40, width: 10, height: 10 }, normalizedRectA: { left: 10, top: 10, width: 10, height: 10 }, normalizedRectB: { left: 40, top: 40, width: 10, height: 10 }, horizontal: null, vertical: null, connectors: [] }],
+      comments: state.review.comments,
+      layoutGuides: [{ id: "layout-1", kind: "columns", visible: true, color: "#ff0000", opacity: 0.1, count: 5, size: 72, gutter: 20, offset: 0, align: "stretch" }],
+      textStyle: { font: "code", color: "#ff00aa" },
+    },
+  },
+};
+
 test("serializes and restores a review state through local storage", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
 
@@ -83,6 +110,35 @@ test("serializes and restores a review state through local storage", async ({ pa
   expect(result.removed).toBeNull();
 });
 
+test("preserves the complete recoverable workspace in a review", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+
+  const restored = await page.evaluate((value) => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    return api.deserializeReviewState(api.serializeReviewState(value));
+  }, stateWithWorkspace);
+
+  expect(restored?.review.workspace).toEqual(stateWithWorkspace.review.workspace);
+});
+
+test("restores review workspace state for Mesurer", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+
+  const restored = await page.evaluate((value) => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    return api.restoreReviewWorkspace(value);
+  }, stateWithWorkspace);
+
+  expect(restored).toMatchObject({
+    guides: [{ id: "guide-1" }],
+    arrows: [{ id: "arrow-1" }],
+    penStrokes: [{ id: "pen-1" }],
+    textAnnotations: [{ id: "text-1" }],
+  });
+  expect(restored.layoutGuides).toHaveLength(1);
+  expect(restored.heldDistances).toHaveLength(1);
+});
+
 test("captures a DOM fingerprint and reattaches after replacement", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
 
@@ -100,9 +156,9 @@ test("captures a DOM fingerprint and reattaches after replacement", async ({ pag
   expect(result.resolution).toBe("attached");
 });
 
-test("exposes the review save tool from the toolbar", async ({ page }) => {
+test("exposes the review save tool in Settings", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
-  await expect(page.getByRole("button", { name: "Save review" })).toBeVisible();
+  await expect(await openReviewSettings(page)).toBeVisible();
 });
 
 test("saves a real toolbar annotation and restores it in the viewer", async ({ page }) => {
@@ -123,7 +179,7 @@ test("saves a real toolbar annotation and restores it in the viewer", async ({ p
       if (text.includes("Temporary review URL")) resolve(text);
     });
   });
-  await page.getByRole("button", { name: "Save review" }).click();
+  await (await openReviewSettings(page)).click();
   const consoleText = await savedUrl;
   const reviewUrl = consoleText.match(/https?:\/\/[^\s]+/)?.[0];
   expect(reviewUrl).toBeTruthy();
@@ -137,7 +193,7 @@ test("saves a real toolbar annotation and restores it in the viewer", async ({ p
 
 test("captures the visible tab while hiding only interactive comments", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
-  await expect(page.getByRole("button", { name: "Save review" })).toBeVisible();
+  await expect(await openReviewSettings(page)).toBeVisible();
   const overlay = page.locator("[data-mesurer-overlay]").first();
   await expect(overlay).toBeAttached();
 

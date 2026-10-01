@@ -121,6 +121,8 @@ type SettingsPanelProps = {
     onMinimize: () => void
     onResetSettings: () => void
     onClearWorkspace: () => void
+    onSaveReview: () => void | Promise<void>
+    reviewSaveStatus: "idle" | "saving" | "saved" | "error"
   }
 }
 
@@ -415,6 +417,8 @@ export function SettingsPanel({
     onMinimize,
     onResetSettings,
     onClearWorkspace,
+    onSaveReview,
+    reviewSaveStatus,
   } = general
   const { settings: screenshotSettings, setSettings: setScreenshotSettings } = camera
   const { settings: rulerSettings, setSettings: setRulerSettings } = rulers
@@ -713,6 +717,17 @@ export function SettingsPanel({
             onClick={onMinimize}
           >
             Minimize
+          </SettingsButton>
+        </div>
+        <div className={`msr:col-span-2 msr:grid msr:h-8 ${SETTINGS_COLUMNS} msr:items-center msr:gap-0 msr:text-[12px] msr:text-ink-700`}>
+          <span>Review</span>
+          <SettingsButton
+            aria-label="Save review"
+            className="msr:justify-self-end"
+            disabled={reviewSaveStatus === "saving"}
+            onClick={() => void onSaveReview()}
+          >
+            {reviewSaveStatus === "saving" ? "Saving..." : reviewSaveStatus === "saved" ? "Saved" : reviewSaveStatus === "error" ? "Try again" : "Save"}
           </SettingsButton>
         </div>
         <div className={`msr:col-span-2 msr:grid msr:h-8 ${SETTINGS_COLUMNS} msr:items-center msr:gap-0 msr:text-[12px] msr:text-ink-700`}>

@@ -3,7 +3,9 @@ import {
   type ReviewAnnotation,
   type ReviewComment,
   type ReviewState,
+  type ReviewWorkspace,
 } from "./model"
+import { isLayoutGuide } from "../layout-guides"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value))
@@ -95,6 +97,40 @@ const isAnnotation = (value: unknown): value is ReviewAnnotation => {
   )
 }
 
+const isMeasurement = (value: unknown) =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  isRect(value.rect) &&
+  isRect(value.normalizedRect) &&
+  isFiniteNumber(value.deltaX) &&
+  isFiniteNumber(value.deltaY) &&
+  (value.originRect === undefined || isRect(value.originRect)) &&
+  (value.snapped === undefined || typeof value.snapped === "boolean")
+
+const isDistance = (value: unknown) =>
+  isRecord(value) &&
+  typeof value.id === "string" &&
+  isRect(value.rectA) &&
+  isRect(value.rectB) &&
+  isRect(value.normalizedRectA) &&
+  isRect(value.normalizedRectB) &&
+  Array.isArray(value.connectors) &&
+  value.connectors.every((connector) =>
+    isRecord(connector) &&
+    isFiniteNumber(connector.x1) &&
+    isFiniteNumber(connector.y1) &&
+    isFiniteNumber(connector.x2) &&
+    isFiniteNumber(connector.y2),
+  ) &&
+  (value.guideIds === undefined || Array.isArray(value.guideIds)) &&
+  (value.horizontal === null || isRecord(value.horizontal)) &&
+  (value.vertical === null || isRecord(value.vertical)) &&
+  (value.extraHorizontals === undefined || Array.isArray(value.extraHorizontals)) &&
+  (value.extraVerticals === undefined || Array.isArray(value.extraVerticals)) &&
+  (value.pinTargetRect === undefined || value.pinTargetRect === null || isRect(value.pinTargetRect)) &&
+  (value.pinCursor === undefined || value.pinCursor === null || isPoint(value.pinCursor)) &&
+  (value.pinCursorOffset === undefined || value.pinCursorOffset === null || isPoint(value.pinCursorOffset))
+
 const isComment = (value: unknown): value is ReviewComment => {
   if (!isRecord(value)) return false
   return (
@@ -115,6 +151,29 @@ const isComment = (value: unknown): value is ReviewComment => {
     }) &&
     isFiniteNumber(value.createdAt) &&
     isFiniteNumber(value.updatedAt)
+  )
+}
+
+const isWorkspace = (value: unknown): value is ReviewWorkspace => {
+  if (!isRecord(value)) return false
+  const isArrow = (entry: unknown) =>
+    isRecord(entry) && typeof entry.id === "string" && isPoint(entry.start) && isPoint(entry.end) && typeof entry.color === "string" && isFiniteNumber(entry.width)
+  const isPenStroke = (entry: unknown) =>
+    isRecord(entry) && typeof entry.id === "string" && Array.isArray(entry.points) && entry.points.every(isPoint) && typeof entry.color === "string" && isFiniteNumber(entry.width)
+  const isText = (entry: unknown) =>
+    isRecord(entry) && typeof entry.id === "string" && isFiniteNumber(entry.x) && isFiniteNumber(entry.y) && typeof entry.text === "string"
+  const isGuide = (entry: unknown) =>
+    isRecord(entry) && typeof entry.id === "string" && (entry.orientation === "vertical" || entry.orientation === "horizontal") && isFiniteNumber(entry.position)
+  return (
+    Array.isArray(value.guides) && value.guides.every(isGuide) &&
+    Array.isArray(value.arrows) && value.arrows.every(isArrow) &&
+    Array.isArray(value.penStrokes) && value.penStrokes.every(isPenStroke) &&
+    Array.isArray(value.textAnnotations) && value.textAnnotations.every(isText) &&
+    Array.isArray(value.measurements) && value.measurements.every(isMeasurement) &&
+    Array.isArray(value.heldDistances) && value.heldDistances.every(isDistance) &&
+    Array.isArray(value.comments) && value.comments.every(isComment) &&
+    Array.isArray(value.layoutGuides) && value.layoutGuides.every(isLayoutGuide) &&
+    (value.textStyle === undefined || isTextStyle(value.textStyle))
   )
 }
 
@@ -160,6 +219,7 @@ export const normalizeReviewState = (value: unknown): ReviewState | null => {
       comments,
       annotations,
       ...(isTextStyle(value.review.textStyle) ? { textStyle: value.review.textStyle } : {}),
+      ...(isWorkspace(value.review.workspace) ? { workspace: value.review.workspace } : {}),
     },
   }
 }

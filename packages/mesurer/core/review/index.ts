@@ -4,6 +4,7 @@ export {
   serializeReviewState,
 } from "./codec"
 export { createReviewStateFromWorkspace } from "./from-workspace"
+export { restoreReviewWorkspace } from "./restore-workspace"
 export {
   captureReviewSnapshot,
   type ReviewSnapshotCapture,
@@ -48,6 +49,9 @@ export type {
   ReviewPage,
   ReviewProject,
   ReviewState,
+  ReviewWorkspace,
+  ReviewDistance,
+  ReviewMeasurement,
   ScreenshotAsset,
   ScrollSnapshot,
   ViewportSnapshot,
