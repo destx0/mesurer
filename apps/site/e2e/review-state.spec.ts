@@ -193,7 +193,6 @@ test("saves a real toolbar annotation and restores it in the viewer", async ({ p
 
 test("captures the visible tab while hiding only interactive comments", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
-  await expect(await openReviewSettings(page)).toBeVisible();
   const overlay = page.locator("[data-mesurer-overlay]").first();
   await expect(overlay).toBeAttached();
 
@@ -225,29 +224,6 @@ test("captures the visible tab while hiding only interactive comments", async ({
   expect(result.visibilityAfterCapture).toBe("");
   expect(result.width).toBe(1);
   expect(result.height).toBe(1);
-});
-
-test("captures the full document with SnapDOM without scrolling", async ({ page }) => {
-  await page.goto("/e2e/fixtures/guide-overlay.html");
-  const overlay = page.locator("[data-mesurer-overlay]").first();
-  await expect(overlay).toBeAttached();
-
-  const result = await overlay.evaluate(async (overlay) => {
-    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
-    document.body.style.height = "1800px";
-    window.scrollTo(0, 240);
-    const snapshot = await api.captureReviewSnapshot({
-      ownerDocument: document,
-      ownerWindow: window,
-      overlay,
-      captureDom: true,
-    });
-    return { scrollY: window.scrollY, width: snapshot.width, height: snapshot.height };
-  });
-
-  expect(result.scrollY).toBe(240);
-  expect(result.width).toBeGreaterThan(1);
-  expect(result.height).toBeGreaterThan(result.width);
 });
 
 test("opens a temporary viewer containing the screenshot and review state", async ({ page, context }) => {

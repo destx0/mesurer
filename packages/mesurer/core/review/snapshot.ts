@@ -55,7 +55,7 @@ export const captureReviewSnapshot = async ({
       try {
         captured = await captureDocumentWithSnapdom(ownerDocument, ownerWindow)
       } catch {
-        // Fall back to the browser capture when DOM serialization cannot handle page content.
+        // Fall back to browser capture when DOM serialization cannot handle page content.
       }
     }
     const blob = captured?.blob ?? await capture()
