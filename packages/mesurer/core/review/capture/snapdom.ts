@@ -21,6 +21,7 @@ export const captureDocumentWithSnapdom = async (
     exclude: "[data-mesurer-comments-layer], .mesurer-color-picker, .mesurer-screenshot-preview, [aria-label='Screenshot selection']",
     excludeMode: "remove",
     format: "png",
+    reconcile: true,
     placeholders: true,
     fallbackURL: FALLBACK_IMAGE_URL,
   })

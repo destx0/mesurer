@@ -596,6 +596,8 @@ export function MesurerClient({
     if (savingReviewRef.current) return;
     savingReviewRef.current = true;
     setReviewSaveStatus("saving");
+    const reviewWindow = ownerWindow.open("", "_blank");
+    if (reviewWindow) reviewWindow.opener = null;
     const now = Date.now();
     try {
       const pageId = ownerWindow.location.href;
@@ -688,6 +690,7 @@ export function MesurerClient({
       // Demo-only UUID route: the viewer is stored locally and is not cross-browser shareable.
       await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
       const reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
+      reviewWindow?.location.replace(reviewUrl);
       console.groupCollapsed("[Mesurer] Review saved");
       console.log("[Mesurer] Temporary review URL", reviewUrl);
       URL.revokeObjectURL(ephemeral.url);
@@ -696,6 +699,7 @@ export function MesurerClient({
       console.groupEnd();
       setReviewSaveStatus("saved");
     } catch (error) {
+      reviewWindow?.close();
       console.error("[Mesurer] Could not save review", error);
       setReviewSaveStatus("error");
     } finally {
