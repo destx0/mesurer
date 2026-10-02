@@ -10,7 +10,9 @@ import {
   createEphemeralReviewUrl,
   createLocalReviewStateStorage,
   deserializeReviewState,
+  loadReviewViewer,
   restoreReviewWorkspace,
+  saveReviewViewer,
   resolveDomFingerprint,
   serializeReviewState,
 } from "../../../../packages/mesurer/core/review";
@@ -43,8 +45,10 @@ export type ReviewStateTestApi = {
   createEphemeralReviewUrl: typeof createEphemeralReviewUrl;
   createLocalReviewStateStorage: typeof createLocalReviewStateStorage;
   deserializeReviewState: typeof deserializeReviewState;
+  loadReviewViewer: typeof loadReviewViewer;
   resolveDomFingerprint: typeof resolveDomFingerprint;
   restoreReviewWorkspace: typeof restoreReviewWorkspace;
+  saveReviewViewer: typeof saveReviewViewer;
   serializeReviewState: typeof serializeReviewState;
 };
 
@@ -63,8 +67,10 @@ Object.assign(window, {
     createEphemeralReviewUrl,
     createLocalReviewStateStorage,
     deserializeReviewState,
+    loadReviewViewer,
     resolveDomFingerprint,
     restoreReviewWorkspace,
+    saveReviewViewer,
     serializeReviewState,
   },
   __mesurerSyncTest: {

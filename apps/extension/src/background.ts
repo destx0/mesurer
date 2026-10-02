@@ -1,4 +1,4 @@
-import { CAPTURE_VISIBLE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SAVE_WORKSPACE_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { CAPTURE_VISIBLE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
 import { createActiveTabRegistry } from "./active-tabs";
 
 const ACTIVE_TABS_KEY = "mesurer:active-tabs";
@@ -198,17 +198,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (typeof tabId === "number" && typeof message.open === "boolean") {
       void activeTabRegistry.setActive(tabId, message.open);
     }
-    return false;
-  }
-
-  if (message?.type === SAVE_WORKSPACE_MESSAGE && typeof message.key === "string") {
-    const write =
-      message.workspace == null
-        ? chrome.storage.local.remove(message.key)
-        : chrome.storage.local.set({ [message.key]: message.workspace });
-    void write.catch((error) => {
-      console.error("Mesurer failed to save workspace", error);
-    });
     return false;
   }
 

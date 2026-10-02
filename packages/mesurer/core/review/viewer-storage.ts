@@ -16,13 +16,6 @@ export const saveReviewViewer = async (ownerWindow: Window, id: string, html: st
       const transaction = database.transaction(STORE_NAME, "readwrite")
       const store = transaction.objectStore(STORE_NAME)
       store.put(html, id)
-      const cursorRequest = store.openCursor()
-      cursorRequest.onsuccess = () => {
-        const cursor = cursorRequest.result
-        if (!cursor) return
-        if (cursor.key !== id) cursor.delete()
-        cursor.continue()
-      }
       transaction.oncomplete = () => resolve()
       transaction.onerror = () => reject(transaction.error ?? new Error("Could not save review"))
     })

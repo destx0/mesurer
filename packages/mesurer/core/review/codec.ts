@@ -193,6 +193,7 @@ export const normalizeReviewState = (value: unknown): ReviewState | null => {
     if (!isRecord(version.domContext) || !isRecord(version.domContext.fingerprints)) return false
     return Object.values(version.domContext.fingerprints).every(isDomFingerprint)
   })
+  if (versions.length === 0) return null
 
   const comments = value.review.comments.filter(isComment)
   const annotations = value.review.annotations.filter(isAnnotation)

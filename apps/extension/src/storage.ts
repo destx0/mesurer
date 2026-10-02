@@ -9,7 +9,6 @@ import type {
   MesurerStoredWorkspace,
   PagedWorkspaceStore,
 } from "mesurer";
-import { SAVE_WORKSPACE_MESSAGE } from "./messages";
 import {
   compareRevisions,
   createNextRevision,
@@ -61,6 +60,7 @@ export const createExtensionPersistence = async (
     : undefined;
   let errorHandler: ((error: unknown) => void) | undefined;
   let settingsTimer: ReturnType<typeof setTimeout> | null = null;
+  let writeQueue = Promise.resolve();
 
   const handleAsync = (operation: Promise<unknown>) => {
     void operation.catch((error) => {
@@ -73,19 +73,24 @@ export const createExtensionPersistence = async (
     return revision;
   };
 
+  const enqueueWrite = (operation: () => Promise<void>) => {
+    const queued = writeQueue.then(operation);
+    writeQueue = queued.catch(() => undefined);
+    handleAsync(queued);
+  };
+
   const writeRevisioned = (values: Record<string, unknown>) => {
-    handleAsync(chrome.storage.local.set({
+    enqueueWrite(() => chrome.storage.local.set({
       ...values,
       [revisionKey]: advanceRevision(),
     }));
   };
 
   const clearRevisioned = (keyToRemove: string) => {
-    const nextRevision = advanceRevision();
-    handleAsync(Promise.all([
-      chrome.storage.local.remove(keyToRemove),
-      chrome.storage.local.set({ [revisionKey]: nextRevision }),
-    ]));
+    enqueueWrite(async () => {
+      await chrome.storage.local.remove(keyToRemove);
+      await chrome.storage.local.set({ [revisionKey]: advanceRevision() });
+    });
   };
 
   const flushSettings = () => {
@@ -113,28 +118,10 @@ export const createExtensionPersistence = async (
     saveWorkspace: (next) => {
       workspace = isPagedWorkspaceStore(next) ? next : normalizeStoredWorkspace(next);
       writeRevisioned({ [key]: workspace });
-      try {
-        chrome.runtime?.sendMessage?.({
-          type: SAVE_WORKSPACE_MESSAGE,
-          key,
-          workspace,
-        });
-      } catch {
-        // background may be restarting
-      }
     },
     clearWorkspace: () => {
       workspace = null;
       clearRevisioned(key);
-      try {
-        chrome.runtime?.sendMessage?.({
-          type: SAVE_WORKSPACE_MESSAGE,
-          key,
-          workspace: null,
-        });
-      } catch {
-        // background may be restarting
-      }
     },
     clearSettings: () => {
       settings = {};

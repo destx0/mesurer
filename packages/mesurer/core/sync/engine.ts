@@ -180,6 +180,19 @@ export const createSyncEngine = <TState>({
         if (result.conflict) conflicts.push(result.conflict)
       }
 
+      // Some transports acknowledge submitted operations without echoing them in
+      // the pull result. Confirm those operations so they are not retried forever.
+      for (const id of acceptedAcknowledgements) {
+        if (observed.has(id)) continue
+        const operation = record.pending.find((candidate) => candidate.id === id)
+        if (!operation) continue
+        const result = domain.apply(confirmedState, operation, { source: "remote" })
+        confirmedState = result.state
+        applied.add(id)
+        observed.add(id)
+        if (result.conflict) conflicts.push(result.conflict)
+      }
+
       const pending = record.pending.filter((operation) => !observed.has(operation.id))
       for (const id of observed) acknowledged.delete(id)
       const cursor = Math.max(record.cursor, response.cursor)

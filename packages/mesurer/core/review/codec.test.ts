@@ -39,4 +39,8 @@ describe("review state codec", () => {
   it("round-trips every serializable workspace field", () => {
     expect(deserializeReviewState(serializeReviewState(state))).toEqual(state)
   })
+
+  it("rejects review states without a valid version", () => {
+    expect(deserializeReviewState(JSON.stringify({ ...state, versions: [] }))).toBeNull()
+  })
 })

@@ -79,7 +79,6 @@ import {
   createReviewStateFromWorkspace,
   captureReviewSnapshot,
   saveReviewViewer,
-  serializeReviewState,
 } from "./core/review";
 
 const collectReviewComments = (
@@ -691,12 +690,7 @@ export function MesurerClient({
       await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
       const reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
       reviewWindow?.location.replace(reviewUrl);
-      console.groupCollapsed("[Mesurer] Review saved");
-      console.log("[Mesurer] Temporary review URL", reviewUrl);
       URL.revokeObjectURL(ephemeral.url);
-      console.log(ephemeral.state);
-      console.log(serializeReviewState(ephemeral.state));
-      console.groupEnd();
       setReviewSaveStatus("saved");
     } catch (error) {
       reviewWindow?.close();

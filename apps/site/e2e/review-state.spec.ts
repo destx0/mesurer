@@ -139,6 +139,50 @@ test("restores review workspace state for Mesurer", async ({ page }) => {
   expect(restored.heldDistances).toHaveLength(1);
 });
 
+test("restores comment targets from the version in which they were created", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+
+  const restoredTarget = await page.evaluate((value) => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    const workspace = value.review.workspace;
+    if (!workspace) throw new Error("Expected review workspace");
+    const oldTarget = document.createElement("button");
+    oldTarget.textContent = "Old target";
+    const newTarget = document.createElement("button");
+    newTarget.textContent = "New target";
+    document.body.append(oldTarget, newTarget);
+    const oldFingerprint = api.captureDomFingerprint(oldTarget);
+    const newFingerprint = api.captureDomFingerprint(newTarget);
+    const review = {
+      ...value,
+      versions: [{
+        ...value.versions[0],
+        id: "version-1",
+        domContext: { fingerprints: { "comment:comment-1": oldFingerprint } },
+      }, {
+        ...value.versions[0],
+        id: "version-2",
+        number: 2,
+        domContext: { fingerprints: { "comment:comment-1": newFingerprint } },
+      }],
+      review: {
+        ...value.review,
+        workspace: {
+          ...workspace,
+          comments: [{
+            ...workspace.comments[0],
+            targetId: "comment:comment-1",
+            createdVersion: "version-1",
+          }],
+        },
+      },
+    };
+    return api.restoreReviewWorkspace(review).comments?.[0]?.target.textSnippet;
+  }, stateWithWorkspace);
+
+  expect(restoredTarget).toBe("Old target");
+});
+
 test("captures a DOM fingerprint and reattaches after replacement", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
 
@@ -161,7 +205,7 @@ test("exposes the review save tool in Settings", async ({ page }) => {
   await expect(await openReviewSettings(page)).toBeVisible();
 });
 
-test("saves a real toolbar annotation and restores it in the viewer", async ({ page }) => {
+test("saves a real toolbar annotation and opens it in the viewer", async ({ page, context }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await page.keyboard.press("2");
   const textTool = page.getByRole("button", { name: "Text (T)" });
@@ -173,20 +217,13 @@ test("saves a real toolbar annotation and restores it in the viewer", async ({ p
   await page.getByRole("textbox", { name: "Text annotation" }).fill("Saved from toolbar");
   await page.keyboard.press("Escape");
 
-  const savedUrl = new Promise<string>((resolve) => {
-    page.on("console", (message) => {
-      const text = message.text();
-      if (text.includes("Temporary review URL")) resolve(text);
-    });
-  });
+  const viewerPage = context.waitForEvent("page");
   await (await openReviewSettings(page)).click();
-  const consoleText = await savedUrl;
-  const reviewUrl = consoleText.match(/https?:\/\/[^\s]+/)?.[0];
-  expect(reviewUrl).toBeTruthy();
+  const viewerTab = await viewerPage;
+  await viewerTab.waitForURL(/\/[0-9a-f-]{36}$/);
 
-  await page.goto(reviewUrl!);
-  await expect(page.locator("iframe[title='Mesurer review']")).toBeVisible();
-  const viewer = page.frameLocator("iframe[title='Mesurer review']");
+  await expect(viewerTab.locator("iframe[title='Mesurer review']")).toBeVisible();
+  const viewer = viewerTab.frameLocator("iframe[title='Mesurer review']");
   await expect(viewer.getByText("Review state")).toBeVisible();
   await expect(viewer.locator(".annotation-text")).toHaveText("Saved from toolbar");
 });
@@ -279,6 +316,22 @@ test("opens a saved review from its local UUID URL", async ({ page }) => {
   await expect(page.locator("iframe[title='Mesurer review']")).toHaveAttribute("srcdoc", /comments and annotations/);
   const viewer = page.frameLocator("iframe[title='Mesurer review']");
   await expect(viewer.locator("#saved")).toHaveText("comments and annotations");
+});
+
+test("keeps earlier saved review viewers available", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+
+  const viewers = await page.evaluate(async () => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    await api.saveReviewViewer(window, "review-one", "<p>first</p>");
+    await api.saveReviewViewer(window, "review-two", "<p>second</p>");
+    return Promise.all([
+      api.loadReviewViewer(window, "review-one"),
+      api.loadReviewViewer(window, "review-two"),
+    ]);
+  });
+
+  expect(viewers).toEqual(["<p>first</p>", "<p>second</p>"]);
 });
 
 test("shows a missing review instead of leaving the UUID route blank", async ({ page }) => {

@@ -53,11 +53,16 @@ export const restoreReviewWorkspace = (
 ): Partial<MesurerStoredWorkspace> => {
   const workspace = state.review.workspace
   if (!workspace) return {}
+  const fingerprintsByVersion = new Map(
+    state.versions.map((version) => [version.id, version.domContext.fingerprints]),
+  )
   const fingerprints = state.versions[state.versions.length - 1]?.domContext.fingerprints ?? {}
   const annotations = state.review.annotations
   const comments: CommentThread[] = workspace.comments.flatMap((comment) => {
     const target = targetFromFingerprint(
-      comment.targetId ? fingerprints[comment.targetId] : undefined,
+      comment.targetId
+        ? fingerprintsByVersion.get(comment.createdVersion)?.[comment.targetId]
+        : undefined,
       comment.position,
       ownerDocument,
     )

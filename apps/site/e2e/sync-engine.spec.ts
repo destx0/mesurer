@@ -119,6 +119,38 @@ test("retries an accepted operation without duplicating it", async ({ page }) =>
   expect(result.serverOperations).toHaveLength(1);
 });
 
+test("confirms an acknowledged operation that is not echoed by the transport", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const api = (window as SyncTestWindow).__mesurerSyncTest;
+    const engine = api.createSyncEngine({
+      scope: "workspace-1",
+      clientId: "client-a",
+      store: api.createMemorySyncStore([]),
+      transport: {
+        exchange: async (request: SyncExchangeRequest) => ({
+          acknowledgedOperationIds: request.operations.map((operation) => operation.id),
+          operations: [],
+          cursor: request.cursor + request.operations.length,
+          hasMore: false,
+        }),
+      },
+      domain: {
+        apply: (state: string[], operation: TestOperation) => ({
+          state: state.includes(operation.id) ? state : [...state, operation.id],
+        }),
+      },
+      createOperationId: () => "operation-1",
+    });
+    await engine.mutate({ entity: "comment", entityId: "comment-1", type: "comment.created", payload: {} });
+    await engine.sync();
+    return engine.getSnapshot();
+  });
+
+  expect(result.pending).toBe(0);
+  expect(result.state).toEqual(["operation-1"]);
+  expect(result.cursor).toBe(1);
+});
+
 test("drains bounded push and pull batches", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const api = (window as SyncTestWindow).__mesurerSyncTest;
