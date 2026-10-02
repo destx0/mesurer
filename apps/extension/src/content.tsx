@@ -12,6 +12,8 @@ import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, REC
 import { createExtensionPersistence } from "./storage";
 import { captureVisibleTabPng } from "./capture-visible-tab";
 
+type ReviewCaptureModule = typeof import("./review-capture");
+
 const STATE_KEY = "__MESURER_EXTENSION_STATE__";
 const OPEN_KEY = "mesurer:open";
 const TAB_ID_KEY = "mesurer:tab-id";
@@ -34,6 +36,15 @@ type ExtensionGlobal = typeof globalThis & {
 };
 
 const extensionGlobal = globalThis as ExtensionGlobal;
+let reviewCaptureModule: Promise<ReviewCaptureModule> | null = null;
+
+const captureDocumentWithSnapdom = async (ownerDocument: Document, ownerWindow: Window) => {
+  if (!reviewCaptureModule) {
+    reviewCaptureModule = import(/* @vite-ignore */ chrome.runtime.getURL("review-capture.js"));
+  }
+  const { captureDocumentWithSnapdom: capture } = await reviewCaptureModule;
+  return capture(ownerDocument, ownerWindow);
+};
 
 function createExtensionRecording() {
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage) {
@@ -227,7 +238,7 @@ const mount = async () => {
         state.persistence = undefined;
       }
     }
-    if (!state.extensionRecording) {
+    if (typeof chrome !== "undefined" && !state.extensionRecording) {
       state.extensionRecording = createExtensionRecording();
     }
     const recordingPlayer = typeof chrome !== "undefined" && chrome.runtime?.getURL
@@ -245,6 +256,7 @@ const mount = async () => {
         // On by default, as in the package: "Use defaults" in Settings leaves Persist on.
         persistOnReload={(extensionGlobal[PERSIST_DEFAULT_KEY] ?? true) || new URLSearchParams(location.search).has("persist")}
         captureVisibleTab={captureVisibleTabPng}
+        captureDom={typeof chrome !== "undefined" ? captureDocumentWithSnapdom : undefined}
         extensionRecording={state.extensionRecording}
         extensionRecordingPlayer={recordingPlayer}
       />,

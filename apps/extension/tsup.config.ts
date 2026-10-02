@@ -2,7 +2,7 @@ import { defineConfig, type Options } from "tsup";
 
 const production = { "process.env.NODE_ENV": JSON.stringify("production") };
 
-// dist is emptied by scripts/clean-dist.mjs before this runs: the two builds below share it.
+// dist is emptied by scripts/clean-dist.mjs before this runs: the builds below share it.
 const shared: Options = {
   outDir: "dist",
   format: ["iife"],
@@ -27,8 +27,9 @@ export default defineConfig([
     ...shared,
     entry: { content: "src/content.tsx" },
     // Leaves out of the content script what only runs outside the extension, or in its other
-    // pages: see packages/mesurer/core/build.ts.
-    define: { ...production, "globalThis.__MESURER_EXTENSION__": "true" },
+    // pages (see packages/mesurer/core/build.ts), and the capture engine, which is loaded from
+    // review-capture.js the first time a review is saved.
+    define: { ...production, "globalThis.__MESURER_EXTENSION__": "true", __MESURER_SNAPDOM_CAPTURE__: "false" },
   },
   {
     ...shared,
@@ -38,6 +39,13 @@ export default defineConfig([
       "offscreen-recording": "src/offscreen-recording.ts",
       "recording-player": "src/recording-player.tsx",
     },
+    define: { ...production, __MESURER_SNAPDOM_CAPTURE__: "false" },
+  },
+  {
+    ...shared,
+    entry: { "review-capture": "src/review-capture.ts" },
+    format: ["esm"],
+    noExternal: ["mesurer", "@zumer/snapdom"],
     define: production,
   },
 ]);

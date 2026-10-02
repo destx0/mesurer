@@ -46,6 +46,7 @@ export function MesurerUnstyled({
   persistence,
   onPersistenceError,
   captureVisibleTab,
+  captureDom,
   extensionRecording,
   extensionRecordingPlayer,
   features,
@@ -97,6 +98,7 @@ export function MesurerUnstyled({
       persistence={persistence}
       onPersistenceError={onPersistenceError}
       captureVisibleTab={captureVisibleTab}
+      captureDom={captureDom}
       extensionRecording={extensionRecording}
       extensionRecordingPlayer={extensionRecordingPlayer}
       features={resolveMesurerFeatures(features)}

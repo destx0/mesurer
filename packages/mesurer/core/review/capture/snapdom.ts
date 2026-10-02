@@ -1,4 +1,3 @@
-import { snapdom } from "@zumer/snapdom"
 import type { CapturedReviewImage } from "./types"
 
 const FALLBACK_IMAGE_URL = `data:image/svg+xml,${encodeURIComponent(`
@@ -12,6 +11,7 @@ export const captureDocumentWithSnapdom = async (
   ownerDocument: Document,
   ownerWindow: Window,
 ): Promise<CapturedReviewImage> => {
+  const { snapdom } = await import("@zumer/snapdom")
   const root = ownerDocument.documentElement
   const width = Math.max(root.scrollWidth, ownerDocument.body?.scrollWidth ?? 0, ownerWindow.innerWidth)
   const height = Math.max(root.scrollHeight, ownerDocument.body?.scrollHeight ?? 0, ownerWindow.innerHeight)

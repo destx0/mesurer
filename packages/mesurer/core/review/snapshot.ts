@@ -3,14 +3,21 @@ import {
   waitForNextPaint,
 } from "../screenshot"
 import { captureVisibleTabPng } from "../screenshot-capture"
-import { captureDocumentWithSnapdom } from "./capture"
+import type { CapturedReviewImage } from "./capture"
+
+declare const __MESURER_SNAPDOM_CAPTURE__: boolean | undefined
+
+type DomCapture = (
+  ownerDocument: Document,
+  ownerWindow: Window,
+) => Promise<CapturedReviewImage>
 
 export type ReviewSnapshotCaptureOptions = {
   ownerDocument: Document
   ownerWindow: Window
   overlay: HTMLElement | null
   captureVisibleTab?: () => Promise<Blob>
-  captureDom?: boolean
+  captureDom?: DomCapture | false
 }
 
 export type ReviewSnapshotCapture = {
@@ -44,16 +51,24 @@ export const captureReviewSnapshot = async ({
   ownerWindow,
   overlay,
   captureVisibleTab,
-  captureDom = false,
+  captureDom,
 }: ReviewSnapshotCaptureOptions): Promise<ReviewSnapshotCapture> => {
   const restore = hideNodesForCapture(getCaptureNodes(overlay))
   try {
     await waitForNextPaint(ownerWindow)
     const capture = captureVisibleTab ?? (() => captureVisibleTabPng(ownerDocument, ownerWindow))
-    let captured: Awaited<ReturnType<typeof captureDocumentWithSnapdom>> | null = null
-    if (captureDom) {
+    const domCapture = captureDom === false
+      ? undefined
+      : captureDom ?? (__MESURER_SNAPDOM_CAPTURE__
+      ? async (document: Document, window: Window) => {
+          const { captureDocumentWithSnapdom } = await import("./capture/snapdom")
+          return captureDocumentWithSnapdom(document, window)
+        }
+      : undefined)
+    let captured: CapturedReviewImage | null = null
+    if (domCapture) {
       try {
-        captured = await captureDocumentWithSnapdom(ownerDocument, ownerWindow)
+        captured = await domCapture(ownerDocument, ownerWindow)
       } catch {
         // Fall back to browser capture when DOM serialization cannot handle page content.
       }

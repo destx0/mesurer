@@ -79,6 +79,7 @@ import {
   createReviewStateFromWorkspace,
   captureReviewSnapshot,
   saveReviewViewer,
+  type CapturedReviewImage,
 } from "./core/review";
 
 const collectReviewComments = (
@@ -145,6 +146,7 @@ export type MesurerProps = {
   persistence?: MesurerPersistence;
   onPersistenceError?: (error: unknown) => void;
   captureVisibleTab?: () => Promise<Blob>;
+  captureDom?: ((ownerDocument: Document, ownerWindow: Window) => Promise<CapturedReviewImage>) | false;
   extensionRecording?: ExtensionRecordingSession;
   extensionRecordingPlayer?: string;
   features?: MesurerFeatures;
@@ -199,6 +201,7 @@ export function MesurerClient({
   persistence,
   onPersistenceError,
   captureVisibleTab,
+  captureDom,
   extensionRecording,
   extensionRecordingPlayer,
   features,
@@ -215,6 +218,7 @@ export function MesurerClient({
     | "rulerSettings"
     | "textStyle"
     | "captureVisibleTab"
+    | "captureDom"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "features"
@@ -229,6 +233,7 @@ export function MesurerClient({
     | "persistence"
     | "onPersistenceError"
     | "captureVisibleTab"
+    | "captureDom"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "initialState"
@@ -676,7 +681,7 @@ export function MesurerClient({
         ownerWindow,
         overlay: overlayRef.current,
         captureVisibleTab,
-        captureDom: true,
+        captureDom,
       });
       const ephemeral = await createEphemeralReviewUrl(state, capture, ownerWindow);
       const reviewId = ownerWindow.crypto.randomUUID?.() ?? (() => {
@@ -724,6 +729,7 @@ export function MesurerClient({
     toolMode,
     xrayVisible,
     captureVisibleTab,
+    captureDom,
     commentRuntimeSnapshot.rects,
   ]);
   const {

@@ -244,6 +244,7 @@ test("captures the visible tab while hiding only interactive comments", async ({
       ownerDocument: document,
       ownerWindow: window,
       overlay,
+      captureDom: false,
       captureVisibleTab: async () => {
         visibilityDuringCapture = commentLayer.style.visibility;
         return png;
