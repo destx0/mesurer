@@ -14,7 +14,7 @@ export default defineConfig([{
   ...shared,
   entry: {
     index: "index.ts",
-    "review-capture": "core/review/capture/snapdom.ts",
+    "review-capture": "review-capture.ts",
   },
   define: { __MESURER_SNAPDOM_CAPTURE__: "true" },
 }, {

@@ -282,6 +282,7 @@ test("opens a temporary viewer containing the screenshot and review state", asyn
   await viewer.goto(url);
   await expect(viewer.getByText("Review state")).toBeVisible();
   await expect(viewer.locator("#screenshot")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(viewer.locator("#live-snapshot")).toHaveCount(0);
   await expect(viewer.locator("#state")).toContainText('"schemaVersion": 1');
   await expect(viewer.locator(".comment-pin")).toHaveCount(1);
   await expect(viewer.locator(".comment-pin")).toHaveAttribute("style", /left: 9\.375%/);
@@ -338,4 +339,138 @@ test("keeps earlier saved review viewers available", async ({ page }) => {
 test("shows a missing review instead of leaving the UUID route blank", async ({ page }) => {
   await page.goto("/00000000-0000-4000-8000-000000000000");
   await expect(page.locator("iframe[title='Mesurer review']")).toHaveAttribute("srcdoc", /Review not found/);
+});
+
+test("draws the page's text on the first capture, in its web font", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+  const inked = await page.evaluate(async () => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    const style = document.createElement("style");
+    style.textContent = `@font-face { font-family: "Review Test"; src: url("/inter-latin.woff2") format("woff2"); }`;
+    document.head.append(style);
+    const heading = document.createElement("h1");
+    heading.textContent = "MMMMMMMM";
+    heading.style.cssText = "position:fixed;left:400px;top:300px;margin:0;font:600 80px 'Review Test';color:#000;background:#fff;z-index:2147483647";
+    document.body.append(heading);
+    await document.fonts.load("600 80px 'Review Test'");
+    const rect = heading.getBoundingClientRect();
+    // The first capture of the page: a font embedded in it has never been painted yet.
+    const capture = await api.captureDocumentWithSnapdom(document, window);
+    const bitmap = await createImageBitmap(capture.blob);
+    const scale = bitmap.width / capture.cssWidth;
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext("2d")!;
+    context.drawImage(bitmap, 0, 0);
+    const { data } = context.getImageData(rect.left * scale, rect.top * scale, rect.width * scale, rect.height * scale);
+    let dark = 0;
+    for (let index = 0; index < data.length; index += 4) if (data[index] < 80 && data[index + 3] > 200) dark++;
+    return dark / (data.length / 4);
+  });
+  expect(inked).toBeGreaterThan(0.1);
+});
+
+test("draws the images another origin serves without CORS, read through the host's loader", async ({ page }) => {
+  // Allowed to another origin only: the page shows them, but its scripts cannot read them.
+  await page.route("https://images.mesurer.test/**", (route) => route.fulfill({
+    contentType: "image/svg+xml",
+    headers: { "access-control-allow-origin": "https://elsewhere.mesurer.test" },
+    body: `<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="#00f"/></svg>`,
+  }));
+  // The colour at the middle of an <img>, then of an element with a CSS background, both blue
+  // on the page. A loader, when there is one, answers red. Each capture runs on a fresh page.
+  // `live` is the capture as a document that loads the images nothing could read.
+  const capture = async (withLoader: boolean) => {
+    await page.goto("/e2e/fixtures/guide-overlay.html");
+    return page.evaluate(async (useLoader) => {
+      const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+      const fetchBefore = window.fetch;
+      const box = "position:fixed;top:300px;width:120px;height:120px;z-index:2147483647";
+      const image = document.createElement("img");
+      image.src = "https://images.mesurer.test/photo.svg";
+      image.style.cssText = `${box};left:400px`;
+      const backdrop = document.createElement("div");
+      backdrop.style.cssText = `${box};left:600px;background:url(https://images.mesurer.test/backdrop.svg) center / cover`;
+      document.body.append(image, backdrop);
+      await image.decode();
+      const swatch = document.createElement("canvas");
+      swatch.width = swatch.height = 8;
+      const swatchContext = swatch.getContext("2d")!;
+      swatchContext.fillStyle = "#f00";
+      swatchContext.fillRect(0, 0, 8, 8);
+      const red = swatch.toDataURL("image/png");
+      const asked = new Set<string>();
+      let captured = false;
+      const pending = api.captureDocumentWithSnapdom(
+        document,
+        window,
+        useLoader ? { loadImage: async (url) => { asked.add(url); return red; } } : undefined,
+      ).finally(() => { captured = true; });
+      // A request of the page's own, for something it does not show, made while the capture runs.
+      while (window.fetch === fetchBefore && !captured) await new Promise((resolve) => setTimeout(resolve, 0));
+      const duringCapture = !captured;
+      const ownFetch = await fetch("https://images.mesurer.test/not-shown.svg").then(() => "answered", () => "failed");
+      const result = await pending;
+      const bitmap = await createImageBitmap(result.blob);
+      const scale = bitmap.width / result.cssWidth;
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext("2d")!;
+      context.drawImage(bitmap, 0, 0);
+      return {
+        centres: [460, 660].map((x) => [...context.getImageData(x * scale, 360 * scale, 1, 1).data.slice(0, 3)]),
+        asked: [...asked].sort(),
+        fetchRestored: window.fetch === fetchBefore,
+        ownFetch: duringCapture ? ownFetch : "not during the capture",
+        live: result.live === undefined ? null : {
+          photo: result.live.includes(`src="https://images.mesurer.test/photo.svg"`),
+          backdrop: result.live.includes("url(&quot;https://images.mesurer.test/backdrop.svg&quot;)"),
+          placeholders: result.live.includes("data-image="),
+          fills: /^<svg\b[^>]* width="100%" height="100%"/.test(result.live),
+        },
+      };
+    }, withLoader);
+  };
+
+  // With nothing to read them, the screenshot has placeholders and the live document their addresses.
+  const alone = await capture(false);
+  for (const pixel of alone.centres) {
+    expect(pixel).not.toEqual([0, 0, 255]);
+    expect(pixel).not.toEqual([255, 0, 0]);
+  }
+  expect(alone.live).toEqual({ photo: true, backdrop: true, placeholders: false, fills: true });
+  expect(alone.fetchRestored).toBe(true);
+  // The page's other requests are never answered for it.
+  expect(alone.ownFetch).toBe("failed");
+
+  const loaded = await capture(true);
+  expect(loaded.asked).toEqual(["https://images.mesurer.test/backdrop.svg", "https://images.mesurer.test/photo.svg"]);
+  expect(loaded.centres).toEqual([[255, 0, 0], [255, 0, 0]]);
+  expect(loaded.live).toBeNull();
+  expect(loaded.ownFetch).toBe("failed");
+  expect(loaded.fetchRestored).toBe(true);
+});
+
+test("shows a capture's live document over the screenshot, in a frame that runs nothing", async ({ page, context }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+  const url = await page.evaluate(async (value) => {
+    const api = (window as ReviewStateTestWindow).__mesurerReviewStateTest;
+    const png = await fetch("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=").then((response) => response.blob());
+    const result = await api.createEphemeralReviewUrl(value, {
+      blob: png,
+      width: 1,
+      height: 1,
+      mimeType: "image/png",
+      live: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1 1"><rect id="mark" width="1" height="1" fill="#0a0"/></svg>`,
+    }, window);
+    return result.url;
+  }, state);
+
+  const viewer = await context.newPage();
+  await viewer.goto(url);
+  const live = viewer.locator("#live-snapshot");
+  await expect(live).toHaveAttribute("sandbox", "");
+  await expect(live).toHaveAttribute("src", /^blob:/);
+  await expect(viewer.frameLocator("#live-snapshot").locator("#mark")).toHaveCount(1);
+  // The screenshot stays under it, and the pins over it.
+  await expect(viewer.locator("#screenshot")).toHaveAttribute("src", /^data:image\/png/);
+  await expect(viewer.locator(".comment-pin")).toHaveCount(1);
 });

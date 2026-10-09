@@ -24,6 +24,7 @@ export {
 export type { DomContextResolution, DomTargetResolution } from "./dom-fingerprint"
 export { createLocalReviewStateStorage } from "./storage"
 export type { ReviewStateStorage } from "./storage"
+export { createReviewViewer, type CreateReviewViewer } from "./viewer"
 export { loadReviewViewer, saveReviewViewer } from "./viewer-storage"
 export type { CapturedReviewImage } from "./capture"
 export {

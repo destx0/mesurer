@@ -5,6 +5,8 @@ import type { ReviewSnapshotCapture } from "./snapshot"
 type ReviewViewerPayload = {
   state: ReviewState
   screenshotDataUrl: string
+  /** The capture as a document, for a page with images that could not be read into the screenshot. */
+  liveSnapshot?: string
 }
 
 const bytesToBase64 = (bytes: Uint8Array) => {
@@ -73,6 +75,7 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
     main { padding: 24px; }
     .stage { position: relative; width: min(100%, 1440px); margin: 0 auto; overflow: hidden; background: white; box-shadow: 0 12px 40px rgba(24,24,27,.12); }
     .stage img { display: block; width: 100%; height: auto; }
+    .stage .live { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: white; pointer-events: none; }
     .annotations { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
     .layout-guides { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
     .layout-guide { position: absolute; display: grid; pointer-events: none; }
@@ -124,6 +127,16 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
       title.textContent = state.page.title || state.page.url;
       meta.textContent = "Version " + version.number + " · " + state.review.comments.length + " comments · " + state.review.annotations.length + " annotations";
       screenshot.src = payload.screenshotDataUrl;
+      if (payload.liveSnapshot) {
+        // Over the screenshot, which keeps the stage's size and shows through if this cannot load.
+        const live = document.createElement("iframe");
+        live.className = "live";
+        live.id = "live-snapshot";
+        live.title = "Captured page";
+        live.setAttribute("sandbox", "");
+        live.src = URL.createObjectURL(new Blob([payload.liveSnapshot], { type: "image/svg+xml" }));
+        screenshot.after(live);
+      }
       stateOutput.textContent = JSON.stringify(state, null, 2);
       const width = snapshot.viewport.width || 1;
       const height = snapshot.viewport.height || 1;
@@ -352,7 +365,11 @@ export const createEphemeralReviewUrl = async (
        annotations: nextState.review.annotations.map((annotation) => transformAnnotation(annotation, origin, capture.scale ?? 1)),
     },
   }
-  const payload = encodePayload({ state: positionedState, screenshotDataUrl })
+  const payload = encodePayload({
+    state: positionedState,
+    screenshotDataUrl,
+    ...(capture.live ? { liveSnapshot: capture.live } : {}),
+  })
   const html = createViewerHtml(payload)
   const url = URL.createObjectURL(new Blob([html], { type: "text/html" }))
   return { url, state: positionedState, html }

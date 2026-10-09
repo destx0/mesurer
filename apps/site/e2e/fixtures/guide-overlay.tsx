@@ -16,6 +16,7 @@ import {
   resolveDomFingerprint,
   serializeReviewState,
 } from "../../../../packages/mesurer/core/review";
+import { captureDocumentWithSnapdom } from "../../../../packages/mesurer/core/review/capture";
 import { createLocalStoragePersistence } from "../../../../packages/mesurer/core/persistence";
 import {
   createIndexedDbSyncStore,
@@ -40,6 +41,7 @@ export type CommentTargetTestApi = {
 };
 
 export type ReviewStateTestApi = {
+  captureDocumentWithSnapdom: typeof captureDocumentWithSnapdom;
   captureDomFingerprint: typeof captureDomFingerprint;
   captureReviewSnapshot: typeof captureReviewSnapshot;
   createEphemeralReviewUrl: typeof createEphemeralReviewUrl;
@@ -62,6 +64,7 @@ Object.assign(window, {
   __mesurerCommentTargetTest: { captureCommentTarget, resolveCommentTarget },
   __mesurerActiveTabTest: { createActiveTabRegistry },
   __mesurerReviewStateTest: {
+    captureDocumentWithSnapdom,
     captureDomFingerprint,
     captureReviewSnapshot,
     createEphemeralReviewUrl,

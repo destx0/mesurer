@@ -75,11 +75,12 @@ import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
 import {
-  createEphemeralReviewUrl,
   createReviewStateFromWorkspace,
+  createReviewViewer as createDefaultReviewViewer,
   captureReviewSnapshot,
   saveReviewViewer,
   type CapturedReviewImage,
+  type CreateReviewViewer,
 } from "./core/review";
 
 const collectReviewComments = (
@@ -147,6 +148,8 @@ export type MesurerProps = {
   onPersistenceError?: (error: unknown) => void;
   captureVisibleTab?: () => Promise<Blob>;
   captureDom?: ((ownerDocument: Document, ownerWindow: Window) => Promise<CapturedReviewImage>) | false;
+  /** Builds a saved review's viewer page, for a host that loads that code on demand. */
+  createReviewViewer?: CreateReviewViewer;
   extensionRecording?: ExtensionRecordingSession;
   extensionRecordingPlayer?: string;
   features?: MesurerFeatures;
@@ -202,6 +205,7 @@ export function MesurerClient({
   onPersistenceError,
   captureVisibleTab,
   captureDom,
+  createReviewViewer,
   extensionRecording,
   extensionRecordingPlayer,
   features,
@@ -219,6 +223,7 @@ export function MesurerClient({
     | "textStyle"
     | "captureVisibleTab"
     | "captureDom"
+    | "createReviewViewer"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "features"
@@ -234,6 +239,7 @@ export function MesurerClient({
     | "onPersistenceError"
     | "captureVisibleTab"
     | "captureDom"
+    | "createReviewViewer"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "initialState"
@@ -683,7 +689,7 @@ export function MesurerClient({
         captureVisibleTab,
         captureDom,
       });
-      const ephemeral = await createEphemeralReviewUrl(state, capture, ownerWindow);
+      const ephemeral = await (createReviewViewer ?? createDefaultReviewViewer)(state, capture, ownerWindow);
       const reviewId = ownerWindow.crypto.randomUUID?.() ?? (() => {
         const bytes = new Uint8Array(16);
         ownerWindow.crypto.getRandomValues(bytes);
@@ -730,6 +736,7 @@ export function MesurerClient({
     xrayVisible,
     captureVisibleTab,
     captureDom,
+    createReviewViewer,
     commentRuntimeSnapshot.rects,
   ]);
   const {

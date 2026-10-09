@@ -29,6 +29,7 @@ export type ReviewSnapshotCapture = {
   cssWidth?: number
   cssHeight?: number
   scale?: number
+  live?: string
 }
 
 const getCaptureNodes = (overlay: HTMLElement | null) => [
@@ -84,6 +85,7 @@ export const captureReviewSnapshot = async ({
         cssWidth: captured.cssWidth,
         cssHeight: captured.cssHeight,
         scale: captured.scale,
+        ...(captured.live ? { live: captured.live } : {}),
       } : { origin: { x: ownerWindow.scrollX, y: ownerWindow.scrollY }, scale: 1 }),
     }
   } finally {

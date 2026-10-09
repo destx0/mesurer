@@ -1,7 +1,24 @@
-import { CAPTURE_VISIBLE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { CAPTURE_VISIBLE_MESSAGE, FETCH_IMAGE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
 import { createActiveTabRegistry } from "./active-tabs";
 
 const ACTIVE_TABS_KEY = "mesurer:active-tabs";
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// A review's screenshot is drawn from the page, and a page cannot read the images it shows from
+// other origins unless they allow it. The extension's host permissions can, so it reads them here.
+const fetchImageDataUrl = async (url: string) => {
+  const response = await fetch(url, { credentials: "include" });
+  const type = response.headers.get("content-type") ?? "";
+  if (!response.ok || !type.startsWith("image/")) throw new Error("Not an image");
+  if (Number(response.headers.get("content-length")) > MAX_IMAGE_BYTES) throw new Error("Image too large");
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error("Image too large");
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return `data:${type.split(";")[0]};base64,${btoa(binary)}`;
+};
 const restoreTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 const isInjectableUrl = (url: string | undefined) => {
@@ -199,6 +216,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       void activeTabRegistry.setActive(tabId, message.open);
     }
     return false;
+  }
+
+  if (message?.type === FETCH_IMAGE_MESSAGE) {
+    if (sender.tab?.id === undefined || typeof message.url !== "string" || !/^https?:\/\//i.test(message.url)) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void fetchImageDataUrl(message.url).then(
+      (dataUrl) => sendResponse({ ok: true, dataUrl }),
+      () => sendResponse({ ok: false }),
+    );
+    return true;
   }
 
   if (message?.type !== CAPTURE_VISIBLE_MESSAGE) return false;
