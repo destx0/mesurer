@@ -5,7 +5,8 @@ import type { LayoutGuide } from "../../core/layout-guides";
 import type { ObservedMotionTarget } from "../../core/observed-motion";
 import type { ToolbarDock } from "../../core/persistence";
 import type { ToolbarPlacement } from "../../core/toolbar-dock";
-import type { OpenMenu, ToolMode } from "../../core/types";
+import type { PenInHand, PenSetting } from "../../core/ink";
+import type { OpenMenu, PenKind, ToolMode } from "../../core/types";
 
 export type ToolbarTools = {
   mode: ToolMode;
@@ -79,6 +80,15 @@ export type ToolbarLayoutGuides = {
   visible: boolean;
 };
 
+export type ToolbarPen = {
+  /** Every pen, as it is set, and which of them is in hand. */
+  pens: PenInHand[];
+  kind: PenKind;
+  onKind: (kind: PenKind) => void;
+  /** Sets the pen in hand. */
+  onChange: (setting: PenSetting) => void;
+};
+
 export type ToolbarResponsive = {
   open: boolean;
   onToggle: () => void;
@@ -108,6 +118,7 @@ export type ToolbarProps = {
   comments: ToolbarComments;
   layoutGuides: ToolbarLayoutGuides;
   responsive: ToolbarResponsive;
+  pen: ToolbarPen;
   settings: ToolbarSettings;
   features: ResolvedMesurerFeatures;
   openMenu: OpenMenu;

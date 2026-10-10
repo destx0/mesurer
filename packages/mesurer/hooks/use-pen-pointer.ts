@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react"
-import { INK_WEIGHT, nextInkWeight, PEN_WIDTH } from "../core/ink"
+import { INK_WEIGHT, nextInkWeight, type PenInHand } from "../core/ink"
 import type { PenPoint, PenStroke, Point, ToolMode } from "../core/types"
 import { createId } from "../core/utils"
 
@@ -15,7 +15,8 @@ type UsePenPointerOptions = {
   enabled: boolean
   settingsOpen: boolean
   toolMode: ToolMode
-  color: string
+  /** The pen in hand, as it is set. */
+  pen: PenInHand
   scrollOffset: Point
   createActionCommit: () => () => void
   setPenStrokes: Dispatch<SetStateAction<PenStroke[]>>
@@ -26,7 +27,7 @@ export const usePenPointer = ({
   enabled,
   settingsOpen,
   toolMode,
-  color,
+  pen,
   scrollOffset,
   createActionCommit,
   setPenStrokes,
@@ -111,10 +112,10 @@ export const usePenPointer = ({
     // By its length, not by how far its end is from its start: a loop ends where it began.
     if (drawing.length >= MIN_STROKE_LENGTH) {
       createActionCommit()()
-      setPenStrokes((strokes) => [...strokes, { id: createId(), points: drawing.points, color, width: PEN_WIDTH }])
+      setPenStrokes((strokes) => [...strokes, { id: createId(), ...pen, points: drawing.points }])
     }
     clearDrawing()
-  }, [addSample, clearDrawing, color, createActionCommit, setPenStrokes])
+  }, [addSample, clearDrawing, createActionCommit, pen, setPenStrokes])
 
   const handlePointerCancel = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (drawingRef.current?.pointerId !== event.pointerId) return

@@ -1,5 +1,5 @@
 import { memo, useRef, type PointerEvent as ReactPointerEvent } from "react"
-import { inkPath, PEN_WIDTH } from "../core/ink"
+import { inkPath, type PenInHand } from "../core/ink"
 import type { PenPoint, PenStroke, Point } from "../core/types"
 import { boxCenter, rotationFromPointer, type ResizeHandle } from "../core/text-transform"
 import { penBounds, movePenStroke, resizePenStroke, rotatePenStroke } from "../core/pen-transform"
@@ -12,7 +12,7 @@ const pathForPoints = (points: Point[]) => points.map((point, index) => `${index
 export const PenLayer = memo(function PenLayer({
   strokes,
   preview,
-  color,
+  inHand,
   scrollOffset,
   selectionMode,
   selectedIds,
@@ -26,9 +26,9 @@ export const PenLayer = memo(function PenLayer({
   selectionCount,
 }: {
   strokes: PenStroke[]
-  /** The stroke being drawn, in the colour it will have. */
+  /** The stroke being drawn, and the pen it is drawn with. */
   preview: PenPoint[]
-  color: string
+  inHand: PenInHand
   scrollOffset: Point
   selectionMode: boolean
   selectedIds: string[]
@@ -119,11 +119,11 @@ export const PenLayer = memo(function PenLayer({
           data-mesurer-pen-transform={stroke.id}
         >
           <path d={pathForPoints(translate(stroke.points))} fill="none" stroke="transparent" strokeWidth={Math.max(36, stroke.width + 28)} strokeLinecap="round" strokeLinejoin="round" pointerEvents={selectionMode ? "stroke" : "none"} style={selectionMode ? { cursor: "move" } : undefined} onPointerDown={(event) => startMove(stroke, event)} data-mesurer-pen-id={stroke.id} />
-          <path d={inkPath(translate(stroke.points), stroke.width)} fill={stroke.color} pointerEvents="none" data-mesurer-pen="true" data-mesurer-pen-id={stroke.id} />
+          <path d={inkPath(translate(stroke.points), stroke.width, stroke.kind)} fill={stroke.color} pointerEvents="none" data-mesurer-pen="true" data-mesurer-pen-kind={stroke.kind ?? "ink"} data-mesurer-pen-id={stroke.id} />
         </g>
       ))}
       {preview.length > 0 ? (
-        <path d={inkPath(translate(preview), PEN_WIDTH)} fill={color} data-mesurer-pen-preview="true" />
+        <path d={inkPath(translate(preview), inHand.width, inHand.kind)} fill={inHand.color} data-mesurer-pen-preview="true" />
       ) : null}
     </svg>
     {selectionMode ? selectedStrokes.map((stroke) => {

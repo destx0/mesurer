@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { inkPath, nextInkWeight } from "./ink"
+import { inkPath, nextInkWeight, penInHand } from "./ink"
 
 // The numbers of a path, in order.
 const numbers = (path: string) => (path.match(/-?\d+(\.\d+)?/g) ?? []).map(Number)
@@ -50,5 +50,32 @@ describe("inkPath", () => {
     // It starts on the outline beside the first point, much closer to the line than half the width.
     const [, startY] = numbers(path)
     expect(Math.abs(startY)).toBeLessThan(1)
+  })
+
+  it("draws a marker as one even band, whatever the weight of the ink, and does not thin its ends", () => {
+    const points = (w: number) => Array.from({ length: 21 }, (_, index) => ({ x: index * 10, y: 0, w }))
+    expect(inkPath(points(1), 16, "marker")).toBe(inkPath(points(0), 16, "marker"))
+    // It starts half its width off the line, where ink would start at a point.
+    const [, startY] = numbers(inkPath(points(0.5), 16, "marker"))
+    expect(startY).toBe(8)
+  })
+
+  it("draws a pen it does not know in ink", () => {
+    const points = [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 100, y: 0 }]
+    expect(inkPath(points, 4, "crayon" as never)).toBe(inkPath(points, 4, "ink"))
+  })
+})
+
+describe("penInHand", () => {
+  it("starts a pen at its own width, in the annotations' colour unless it has its own", () => {
+    expect(penInHand("ink", {}, "red")).toEqual({ kind: "ink", width: 3, color: "red" })
+    // A marker's own colour lets what is under it show through.
+    expect(penInHand("marker", {}, "red")).toEqual({ kind: "marker", width: 16, color: "#facc1566" })
+  })
+
+  it("keeps what each pen was set to, apart from the others", () => {
+    const settings = { marker: { width: 24, color: "#22c55e" } }
+    expect(penInHand("marker", settings, "red")).toEqual({ kind: "marker", width: 24, color: "#22c55e" })
+    expect(penInHand("fineliner", settings, "red")).toEqual({ kind: "fineliner", width: 2, color: "red" })
   })
 })

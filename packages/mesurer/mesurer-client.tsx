@@ -44,6 +44,7 @@ import { useArrowsPointer } from "./hooks/use-arrows-pointer";
 import { usePenPointer } from "./hooks/use-pen-pointer";
 import { copyCommentsForAgent, useCommentPointer } from "./comments";
 import { removePreviewSelection, scrollElementIntoView } from "./core/responsive";
+import { PEN_KINDS, penInHand } from "./core/ink";
 import { createLayoutGuide, type LayoutGuide } from "./core/layout-guides";
 import { getRectFromPoints } from "./core/geometry";
 import { attachPinnedGuideTarget } from "./core/distances";
@@ -1316,11 +1317,14 @@ export function MesurerClient({
   });
   cancelArrowInteractionRef.current = arrowsPointer.cancelInteraction;
   hasArrowInteractionRef.current = arrowsPointer.hasActiveInteraction;
+  // Every pen as it is set, and the one in hand.
+  const pens = PEN_KINDS.map((kind) => penInHand(kind, settings.penSettings, settings.arrowColor));
+  const penInHandNow = pens.find((pen) => pen.kind === settings.penKind) ?? pens[0];
   const penPointer = usePenPointer({
     enabled,
     settingsOpen,
     toolMode,
-    color: settings.arrowColor,
+    pen: penInHandNow,
     scrollOffset,
     createActionCommit,
     setPenStrokes: setPenStrokesPersisted,
@@ -1787,7 +1791,7 @@ export function MesurerClient({
         pen: {
           strokes: penStrokes,
           preview: penPreview,
-          color: settings.arrowColor,
+          inHand: penInHandNow,
           scrollOffset,
           selectionMode: toolMode === "selection",
           selectedIds: selectedPenStrokeIds,
@@ -1886,6 +1890,16 @@ export function MesurerClient({
         onPositionChange: settings.setToolbarPosition,
         dock: settings.toolbarDock,
         autoHide: settings.toolbarAutoHide,
+        pen: {
+          pens,
+          kind: settings.penKind,
+          onKind: settings.setPenKind,
+          onChange: (setting) =>
+            settings.setPenSettings((previous) => ({
+              ...previous,
+              [settings.penKind]: { ...previous[settings.penKind], ...setting },
+            })),
+        },
         minimized,
         onInteract: activateToolbar,
         onRestore: restoreToolbar,

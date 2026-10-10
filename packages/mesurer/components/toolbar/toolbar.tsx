@@ -23,6 +23,7 @@ import { useCommentsFeedback } from "../../hooks/use-comments-feedback";
 import { usePageListener } from "../../hooks/use-page-listener";
 import { TOOLBAR_SIDE_ATTRIBUTE } from "../screen-recording";
 import { MotionPlayer } from "../motion-player";
+import { PenCard } from "../pen-card";
 import { CaptureToast } from "../capture-toast";
 import { ScreenshotPreview } from "../screenshot-preview";
 import { Tooltip, TooltipLayerContext } from "../tooltip";
@@ -49,6 +50,7 @@ import {
   LayoutGridIcon,
   ResponsiveIcon,
 } from "../icons";
+import { PEN_STYLES } from "../../core/ink";
 import { CaptureMenu, CommentsMenu } from "./toolbar-menus";
 import { GuideOrientationMenu } from "./guide-orientation-menu";
 import { ToolbarButton, ToolbarCaretButton, ToolbarDivider, ToolbarGroup } from "./toolbar-button";
@@ -91,6 +93,7 @@ function ToolbarComponent(
     comments,
     layoutGuides,
     responsive,
+    pen,
     settings,
     features,
     openMenu,
@@ -201,6 +204,7 @@ function ToolbarComponent(
   const guideMenuOpen = openMenu?.type === "guide-orientation";
   const commentMenuOpen = openMenu?.type === "comments";
   const captureMenuOpen = openMenu?.type === "capture";
+  const penCardOpen = openMenu?.type === "pen";
   const [guideControl, setGuideControl] = useState<"guides" | "rulers">(
     rulersVisible ? "rulers" : "guides",
   );
@@ -260,7 +264,7 @@ function ToolbarComponent(
   const rulersWereVisibleRef = useRef(rulersVisible);
   const [tooltipLayer, setTooltipLayer] = useState<HTMLElement | null>(null);
   const layoutGuidesOpen = openMenu?.type === "layout-guides";
-  const tooltipsEnabled = !dragging && !guideMenuOpen && !commentMenuOpen && !captureMenuOpen && !settingsOpen && !layoutGuidesOpen && !colorPickerActive;
+  const tooltipsEnabled = !dragging && !guideMenuOpen && !commentMenuOpen && !captureMenuOpen && !penCardOpen && !settingsOpen && !layoutGuidesOpen && !colorPickerActive;
   const settingsShortcut = getSettingsShortcut(eventTarget);
   const macShortcuts = /Mac|iPhone|iPad|iPod/.test(eventTarget.navigator.platform);
   const copyCommentsShortcut = macShortcuts ? "⌘ K" : "Ctrl + K";
@@ -394,7 +398,8 @@ function ToolbarComponent(
   const recordingPanelOpen = Boolean(screenRecording.panel);
   const motionPlayerOpen = motion.playable && !recordingPanelOpen;
   const floatingCardOpen = recordingPanelOpen || motionPlayerOpen;
-  const captureAnchorRef = useRef<HTMLDivElement | null>(null);
+  const captureAnchorRef = useRef<HTMLDivElement | null>(null)
+  const penAnchorRef = useRef<HTMLDivElement | null>(null)
   const colorPickerAnchorRef = useRef<HTMLDivElement | null>(null);
   // Auto-hide: a bar glued to an edge slides mostly out of view until the pointer comes back.
   // It stays out while anything hangs off it: a menu, the settings, a card or the color picker.
@@ -440,6 +445,8 @@ function ToolbarComponent(
     useFloatingSurfacePlacement({ ...controlSurface, anchorRef: colorPickerAnchorRef, open: colorPickerActive });
   const { surfaceRef: captureMenuPortalRef, placement: captureMenuPortalPlacement } =
     useFloatingSurfacePlacement({ ...controlSurface, anchorRef: captureAnchorRef, open: captureMenuOpen });
+  const { surfaceRef: penCardRef, placement: penCardPlacement } =
+    useFloatingSurfacePlacement({ ...controlSurface, anchorRef: penAnchorRef, open: penCardOpen });
   const { surfaceRef: screenshotCardRef, placement: screenshotCardPlacement } =
     useFloatingSurfacePlacement({
       ...controlSurface,
@@ -717,6 +724,7 @@ function ToolbarComponent(
         pathHas("[data-mesurer-menu-trigger]") ||
         pathHas("[role='menu']") ||
         pathHas("[data-mesurer-layout-guides-panel]") ||
+        pathHas("[data-mesurer-pen-card]") ||
         pathHas("[data-tool-id='layout-guides']")
       ) {
         return
@@ -988,18 +996,64 @@ function ToolbarComponent(
                               >
                                 <div ref={annotatePanelRef} className="mesurer-toolbar-tool-panel msr:px-1">
                                   <ToolbarGroup label="Annotate">
-                                    {ANNOTATE_TOOLS.map(({ mode, label, shortcut, Icon }) => (
-                                      <ToolbarButton
-                                        key={mode}
-                                        {...tool(mode)}
-                                        active={toolMode === mode}
-                                        label={label}
-                                        shortcut={shortcut}
-                                        onClick={() => toggleTool(mode)}
-                                      >
-                                        <Icon size={20} aria-hidden="true" />
-                                      </ToolbarButton>
-                                    ))}
+                                    {ANNOTATE_TOOLS.map(({ mode, label, shortcut, Icon }) => {
+                                      const button = (
+                                        <ToolbarButton
+                                          key={mode}
+                                          {...tool(mode)}
+                                          active={toolMode === mode}
+                                          // The pen is named after the one in hand.
+                                          label={mode === "pen" ? PEN_STYLES[pen.kind].label : label}
+                                          shortcut={shortcut}
+                                          onClick={() => {
+                                            if (mode === "pen" && penCardOpen) setOpenMenu(null)
+                                            toggleTool(mode)
+                                          }}
+                                        >
+                                          <Icon size={20} aria-hidden="true" />
+                                        </ToolbarButton>
+                                      )
+                                      if (mode !== "pen") return button
+                                      // The pen has its pens behind a caret: which one, how wide and what colour.
+                                      return (
+                                        <div key={mode} ref={penAnchorRef} className="mesurer-toolbar-flow mesurer-toolbar-caret-anchor msr:relative msr:flex msr:flex-none">
+                                          {button}
+                                          <ToolbarCaretButton
+                                            label="Pens"
+                                            open={penCardOpen}
+                                            onClick={() => toggleToolbarMenu({ type: "pen" })}
+                                          />
+                                          {penCardOpen
+                                            ? createPortal(
+                                              <div
+                                                ref={penCardRef}
+                                                className="msr:pointer-events-auto msr:fixed"
+                                                style={floatingMenuStyle(penCardPlacement)}
+                                                onPointerDown={(event) => event.stopPropagation()}
+                                                onKeyDown={(event) => {
+                                                  if (event.key !== "Escape") return
+                                                  event.preventDefault()
+                                                  event.stopPropagation()
+                                                  setOpenMenu(null)
+                                                }}
+                                              >
+                                                <PenCard
+                                                  pens={pen.pens}
+                                                  kind={pen.kind}
+                                                  onKind={(kind) => {
+                                                    // Picking a pen picks it up.
+                                                    pen.onKind(kind)
+                                                    if (toolMode !== "pen") toggleTool("pen")
+                                                  }}
+                                                  onChange={pen.onChange}
+                                                />
+                                              </div>,
+                                              commentPanelPortalTarget,
+                                            )
+                                            : null}
+                                        </div>
+                                      )
+                                    })}
                                   </ToolbarGroup>
                                 </div>
                               </div>

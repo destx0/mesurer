@@ -30,6 +30,48 @@ const drawStroke = async (page: Page) => {
   await page.mouse.up();
 };
 
+test("opens the pens from the pen tool's caret, and draws with the one picked as it is set", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+  const card = page.locator("[data-mesurer-pen-card]");
+  await activatePen(page);
+  // The pens stay put away until they are asked for.
+  await expect(card).toHaveCount(0);
+  await drawStroke(page);
+  await expect(strokes(page)).toHaveAttribute("data-mesurer-pen-kind", "ink");
+
+  const caret = page.getByRole("button", { name: "Pens", exact: true });
+  await caret.click();
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: "Marker", exact: true }).click();
+  // The tool is named after the pen in hand, and stays the tool in use.
+  await expect(page.getByRole("button", { name: "Marker (N)" })).toHaveAttribute("aria-pressed", "true");
+  await expect(card.getByRole("button", { name: "Marker", exact: true })).toHaveAttribute("aria-pressed", "true");
+  // A marker starts at its own width, and its colour is picked in the card.
+  await expect(card.getByRole("button", { name: "16px" })).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: "24px" }).click();
+  await card.getByRole("button", { name: "Color", exact: true }).click();
+  await card.getByRole("button", { name: "#22c55e" }).click();
+
+  // A press on the page puts the pens away and starts the stroke.
+  await page.mouse.move(120, 460);
+  await page.mouse.down();
+  await page.mouse.move(260, 480, { steps: 6 });
+  await page.mouse.up();
+  await expect(card).toHaveCount(0);
+  await expect(strokes(page)).toHaveCount(2);
+  const marker = strokes(page).nth(1);
+  await expect(marker).toHaveAttribute("data-mesurer-pen-kind", "marker");
+  // The swatch changed the colour and left it as see-through as a marker starts.
+  await expect(marker).toHaveAttribute("fill", "#22c55e66");
+
+  // Each pen is found as it was left.
+  await caret.click();
+  await card.getByRole("button", { name: "Pen", exact: true }).click();
+  await expect(card.getByRole("button", { name: "3px" })).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: "Marker", exact: true }).click();
+  await expect(card.getByRole("button", { name: "24px" })).toHaveAttribute("aria-pressed", "true");
+});
+
 test("draws a freehand stroke with a transient preview", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activatePen(page);

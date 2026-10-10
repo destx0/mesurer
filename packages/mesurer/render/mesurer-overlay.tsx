@@ -138,7 +138,7 @@ type MesurerOverlayProps = {
   pen: {
     strokes: import("../core/types").PenStroke[]
     preview: import("../core/types").PenPoint[]
-    color: string
+    inHand: import("../core/ink").PenInHand
     scrollOffset: { x: number; y: number }
     selectionMode: boolean
     selectedIds: string[]

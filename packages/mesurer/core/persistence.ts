@@ -3,6 +3,7 @@ import type {
   DistanceOverlay,
   Guide,
   Arrow,
+  PenKind,
   PenStroke,
   Measurement,
   TextAnnotation,
@@ -10,6 +11,7 @@ import type {
   ToolMode,
 } from "./types"
 import type { ColorPickerFormat } from "./colors"
+import { PEN_KINDS, type PenSettings } from "./ink"
 import type { ToolbarPlacement } from "./toolbar-dock"
 import { normalizeTextStyle, type TextStyleSettings } from "./text-style"
 import { normalizeLayoutGuides, type LayoutGuide } from "./layout-guides"
@@ -83,6 +85,8 @@ export type MesurerStoredSettings = {
   toolbarPosition?: ToolbarPlacement
   toolbarDock?: ToolbarDock
   toolbarAutoHide?: boolean
+  penKind?: PenKind
+  penSettings?: PenSettings
   highlightColor?: string
   guideColor?: string
   arrowColor?: string
@@ -295,6 +299,25 @@ const isFiniteNumber = (value: unknown): value is number =>
 const isToolbarDock = (value: unknown): value is ToolbarDock =>
   value === "free" || value === "snap"
 
+const isPenKind = (value: unknown): value is PenKind =>
+  typeof value === "string" && PEN_KINDS.includes(value as PenKind)
+
+// What each pen was set to, with only what is a width or a colour kept.
+const normalizePenSettings = (input: unknown): PenSettings => {
+  const settings: PenSettings = {}
+  if (!input || typeof input !== "object") return settings
+  for (const kind of PEN_KINDS) {
+    const own = (input as Record<string, unknown>)[kind]
+    if (!own || typeof own !== "object") continue
+    const { width, color } = own as Record<string, unknown>
+    settings[kind] = {
+      ...(isFiniteNumber(width) && width > 0 ? { width } : {}),
+      ...(typeof color === "string" ? { color } : {}),
+    }
+  }
+  return settings
+}
+
 const isToolbarPosition = (value: unknown): value is ToolbarPlacement => {
   if (!value || typeof value !== "object") return false
   const point = value as Record<string, unknown>
@@ -481,6 +504,8 @@ export const normalizeStoredSettings = (value: unknown): MesurerStoredSettings =
     ...(isToolbarPosition(input.toolbarPosition) ? { toolbarPosition: normalizeToolbarPlacement(input.toolbarPosition) } : {}),
     ...(isToolbarDock(input.toolbarDock) ? { toolbarDock: input.toolbarDock } : {}),
     ...(typeof input.toolbarAutoHide === "boolean" ? { toolbarAutoHide: input.toolbarAutoHide } : {}),
+    ...(isPenKind(input.penKind) ? { penKind: input.penKind } : {}),
+    ...(input.penSettings ? { penSettings: normalizePenSettings(input.penSettings) } : {}),
     ...(typeof input.highlightColor === "string" ? { highlightColor: input.highlightColor } : {}),
     ...(typeof input.guideColor === "string" ? { guideColor: input.guideColor } : {}),
     ...(typeof input.arrowColor === "string" ? { arrowColor: input.arrowColor } : {}),

@@ -10,7 +10,8 @@ import type {
   InfoCardMode,
   ThemeMode,
 } from "../core/persistence";
-import type { PersistentToolMode } from "../core/types";
+import { DEFAULT_PEN_KIND, type PenSettings } from "../core/ink";
+import type { PenKind, PersistentToolMode } from "../core/types";
 import { DEFAULT_SCREENSHOT_SETTINGS, DEFAULT_TOOLBAR_DOCK } from "../core/persistence";
 import { type TextStyleSettings } from "../core/text-style";
 
@@ -102,6 +103,8 @@ export const useMesurerSettings = ({
     persistedSettings.toolbarDock ?? DEFAULT_TOOLBAR_DOCK,
   );
   const [toolbarAutoHide, setToolbarAutoHide] = useState(persistedSettings.toolbarAutoHide ?? false);
+  const [penKind, setPenKind] = useState<PenKind>(persistedSettings.penKind ?? DEFAULT_PEN_KIND);
+  const [penSettings, setPenSettings] = useState<PenSettings>(persistedSettings.penSettings ?? {});
   const [colorPickerFormats, setColorPickerFormats] = useState(
     persistedSettings.colorPickerFormats ?? defaults.colorPickerFormats,
   );
@@ -140,6 +143,8 @@ export const useMesurerSettings = ({
     setToolbarPosition({ x: 16, y: 16 });
     setToolbarDock(DEFAULT_TOOLBAR_DOCK);
     setToolbarAutoHide(false);
+    setPenKind(DEFAULT_PEN_KIND);
+    setPenSettings({});
     setColorPickerFormats([...defaults.colorPickerFormats]);
     setColorPickerClickFormat(defaults.colorPickerClickFormat);
     toggles.setSnapEnabled(defaults.snapEnabled);
@@ -178,6 +183,8 @@ export const useMesurerSettings = ({
       toolbarPosition,
       toolbarDock,
       toolbarAutoHide,
+      penKind,
+      penSettings,
       guideStyle,
       rulerSettings,
       screenshotSettings,
@@ -203,6 +210,8 @@ export const useMesurerSettings = ({
     toolbarPosition,
     toolbarDock,
     toolbarAutoHide,
+    penKind,
+    penSettings,
     rulerSettings,
     screenshotSettings,
     textStyle,
@@ -242,6 +251,8 @@ export const useMesurerSettings = ({
     if (settings.toolbarPosition !== undefined) setToolbarPosition(settings.toolbarPosition);
     if (settings.toolbarDock !== undefined) setToolbarDock(settings.toolbarDock);
     if (settings.toolbarAutoHide !== undefined) setToolbarAutoHide(settings.toolbarAutoHide);
+    if (settings.penKind !== undefined) setPenKind(settings.penKind);
+    if (settings.penSettings !== undefined) setPenSettings(settings.penSettings);
     if (settings.snapEnabled !== undefined) toggles.setSnapEnabled(settings.snapEnabled);
     if (settings.snapGuidesEnabled !== undefined) {
       toggles.setSnapGuidesEnabled(settings.snapGuidesEnabled);
@@ -301,6 +312,10 @@ export const useMesurerSettings = ({
     setToolbarDock,
     toolbarAutoHide,
     setToolbarAutoHide,
+    penKind,
+    setPenKind,
+    penSettings,
+    setPenSettings,
     colorPickerFormats,
     setColorPickerFormats,
     colorPickerClickFormat,

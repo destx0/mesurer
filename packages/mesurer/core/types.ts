@@ -17,8 +17,13 @@ export type Arrow = {
 // without it (one drawn before ink had weight) is drawn at the stroke's own width.
 export type PenPoint = Point & { w?: number }
 
+// The pens there are to draw with. Each has its own width and the way its ink lies: see core/ink.ts.
+export type PenKind = "ink" | "marker" | "fineliner"
+
 export type PenStroke = {
   id: string
+  /** The pen it was drawn with. One drawn before there were several was drawn in ink. */
+  kind?: PenKind
   points: PenPoint[]
   color: string
   width: number
@@ -204,6 +209,7 @@ export type OpenMenu =
   | { type: "comments"; panel: boolean }
   | { type: "guide-orientation" }
   | { type: "capture" }
+  | { type: "pen" }
   | { type: "guide-context"; ids: string[]; x: number; y: number }
   | { type: "layout-guides" }
   | null
