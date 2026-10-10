@@ -19,10 +19,12 @@ const inkOf = (color: string) => {
 }
 
 // The pens stand in the tray with their tips up, each drawn as the thing it is: 36 wide and 100
-// tall, the tray cutting off their lower end. Their barrels are dark whatever the theme, shaded
-// across like something round, with the ink's colour at the tip.
+// tall, the tray cutting off their lower end. Their barrels are the tray's own tone, a shade
+// deeper so they stand off it with no line drawn round them, and shaded across like something
+// round, so that the ink's colour at the tip and round the barrel is what stands out. The tones
+// are the theme's (see `--msr-pen-*` in styles.css), set as styles: an attribute cannot read them.
 const BARREL = "url(#mesurer-pen-barrel)"
-const EDGE = { stroke: "rgba(255,255,255,0.14)", strokeWidth: 0.75 }
+const BARREL_STOPS = [0, 0.3, 0.72, 1]
 
 // The band round a pen's barrel is in the pen's colour, and as tall as the pen draws wide: the
 // thinnest of its widths the thinnest band, the widest the tallest.
@@ -37,7 +39,7 @@ const PEN_SHAPES: Record<PenKind, (ink: { solid: string; alpha: number; band: nu
   // A long cone that comes to a point, the ink at its very tip.
   ink: ({ solid, band }) => (
     <>
-      <path d="M18 4 28 46v54H8V46Z" fill={BARREL} {...EDGE} />
+      <path d="M18 4 28 46v54H8V46Z" fill={BARREL} />
       <path d="M18 4 21.1 17h-6.2Z" fill={solid} />
       <rect x="8" y="52" width="20" height={band} fill={solid} {...BAND} />
     </>
@@ -45,7 +47,7 @@ const PEN_SHAPES: Record<PenKind, (ink: { solid: string; alpha: number; band: nu
   // A thin nib on a stepped barrel.
   fineliner: ({ solid, band }) => (
     <>
-      <path d="M15 17h6l2 7h2v9h2v67H9V33h2v-9h2Z" fill={BARREL} {...EDGE} />
+      <path d="M15 17h6l2 7h2v9h2v67H9V33h2v-9h2Z" fill={BARREL} />
       <rect x="17" y="6" width="2" height="11" rx="0.6" fill={solid} />
       <rect x="9" y="58" width="18" height={band} fill={solid} {...BAND} />
     </>
@@ -54,10 +56,10 @@ const PEN_SHAPES: Record<PenKind, (ink: { solid: string; alpha: number; band: nu
   // its band.
   marker: ({ solid, alpha, band }) => (
     <>
-      <path d="M12 23h12c0 9 5 9 5 18v59H7V41c0-9 5-9 5-18Z" fill={BARREL} {...EDGE} />
+      <path d="M12 23h12c0 9 5 9 5 18v59H7V41c0-9 5-9 5-18Z" fill={BARREL} />
       <path d="M12 23V11.5a2 2 0 0 1 1.1-1.8l8-4A2 2 0 0 1 24 7.5V23Z" fill={solid} />
       <rect x="7" y="58" width="22" height={band} fill={solid} {...BAND} />
-      <text x="18" y="83" textAnchor="middle" fontSize="8.5" fontWeight="600" letterSpacing="0.6" fill="rgba(255,255,255,0.72)">
+      <text x="18" y="83" textAnchor="middle" fontSize="8.5" fontWeight="600" letterSpacing="0.6" style={{ fill: "var(--msr-pen-text)" }}>
         {Math.round(alpha * 100)}
       </text>
     </>
@@ -97,10 +99,9 @@ export function PenCard({
         <svg width="0" height="0" className="msr:absolute" aria-hidden="true">
           <defs>
             <linearGradient id="mesurer-pen-barrel" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0" stopColor="#4a4a4d" />
-              <stop offset="0.3" stopColor="#2c2c2e" />
-              <stop offset="0.72" stopColor="#1a1a1c" />
-              <stop offset="1" stopColor="#38383a" />
+              {BARREL_STOPS.map((offset, index) => (
+                <stop key={offset} offset={offset} style={{ stopColor: `var(--msr-pen-barrel-${index + 1})` }} />
+              ))}
             </linearGradient>
           </defs>
         </svg>
