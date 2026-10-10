@@ -74,7 +74,7 @@ export const applyGroupResize = (snapshot: GroupResizeSnapshot, handle: ResizeHa
     }])),
     penStrokes: new Map(snapshot.penStrokes.map((stroke) => [stroke.id, {
       ...stroke,
-      points: stroke.points.map(transform),
+      points: stroke.points.map((point) => ({ ...point, ...transform(point) })),
       width: Math.max(1, stroke.width * (factors.uniform ? Math.abs(factors.x) : 1)),
     }])),
     texts: new Map(snapshot.texts.map(({ item, bounds }) => {

@@ -43,7 +43,9 @@ test("draws a freehand stroke with a transient preview", async ({ page }) => {
 
   await expect(strokes(page)).toHaveCount(1);
   await expect(page.locator("[data-mesurer-pen-preview='true']")).toHaveCount(0);
-  await expect(strokes(page)).toHaveAttribute("stroke-width", "2");
+  // Ink is the filled outline of the stroke, not a line of one width.
+  await expect(strokes(page)).toHaveAttribute("d", /^M.*A.*Z$/);
+  await expect(strokes(page)).not.toHaveAttribute("fill", "none");
 });
 
 test("does not create a stroke from a click", async ({ page }) => {

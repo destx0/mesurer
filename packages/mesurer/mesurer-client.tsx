@@ -1787,6 +1787,7 @@ export function MesurerClient({
         pen: {
           strokes: penStrokes,
           preview: penPreview,
+          color: settings.arrowColor,
           scrollOffset,
           selectionMode: toolMode === "selection",
           selectedIds: selectedPenStrokeIds,

@@ -14,7 +14,7 @@ export const transformedPenBounds = (stroke: PenStroke): PenBounds => {
 
 export const movePenStroke = (stroke: PenStroke, dx: number, dy: number): PenStroke => ({
   ...stroke,
-  points: stroke.points.map((point) => ({ x: point.x + dx, y: point.y + dy })),
+  points: stroke.points.map((point) => ({ ...point, x: point.x + dx, y: point.y + dy })),
 })
 
 export const resizePenStroke = (stroke: PenStroke, handle: ResizeHandle, pointer: Point): PenStroke => {
@@ -23,9 +23,7 @@ export const resizePenStroke = (stroke: PenStroke, handle: ResizeHandle, pointer
   const geometry = resizeGeometry(box, rotation, handle, pointer)
   return {
     ...stroke,
-    points: stroke.points.map((point) => {
-      return resizePoint(point, geometry)
-    }),
+    points: stroke.points.map((point) => ({ ...point, ...resizePoint(point, geometry) })),
     rotation,
   }
 }
@@ -50,10 +48,10 @@ export const rotatePenStrokeAround = (
   const rotation = stroke.rotation ?? 0
   const nextCenter = rotatePoint(strokeCenter, center, degrees)
   const nextRotation = rotation + degrees
-  const rotated = stroke.points
-    .map((point) => rotatePoint(point, strokeCenter, rotation))
-    .map((point) => rotatePoint(point, center, degrees))
-    .map((point) => rotatePoint(point, nextCenter, -nextRotation))
+  const rotated = stroke.points.map((point) => ({
+    ...point,
+    ...rotatePoint(rotatePoint(rotatePoint(point, strokeCenter, rotation), center, degrees), nextCenter, -nextRotation),
+  }))
   return {
     ...stroke,
     points: rotated,

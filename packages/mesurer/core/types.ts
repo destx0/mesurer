@@ -13,9 +13,13 @@ export type Arrow = {
   rotation?: number
 }
 
+// A point of a pen stroke, with how heavy the ink is there: 0 the thinnest, 1 the thickest. A point
+// without it (one drawn before ink had weight) is drawn at the stroke's own width.
+export type PenPoint = Point & { w?: number }
+
 export type PenStroke = {
   id: string
-  points: Point[]
+  points: PenPoint[]
   color: string
   width: number
   rotation?: number
