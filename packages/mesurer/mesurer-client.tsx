@@ -1325,6 +1325,8 @@ export function MesurerClient({
     settingsOpen,
     toolMode,
     pen: penInHandNow,
+    eraser: settings.penKind === "eraser",
+    penStrokes,
     scrollOffset,
     createActionCommit,
     setPenStrokes: setPenStrokesPersisted,
@@ -1792,6 +1794,7 @@ export function MesurerClient({
           strokes: penStrokes,
           preview: penPreview,
           inHand: penInHandNow,
+          erasing: settings.penKind === "eraser",
           scrollOffset,
           selectionMode: toolMode === "selection",
           selectedIds: selectedPenStrokeIds,
@@ -1894,10 +1897,11 @@ export function MesurerClient({
           pens,
           kind: settings.penKind,
           onKind: settings.setPenKind,
+          // The pen that is set is the one shown as in hand: with the eraser, the first.
           onChange: (setting) =>
             settings.setPenSettings((previous) => ({
               ...previous,
-              [settings.penKind]: { ...previous[settings.penKind], ...setting },
+              [penInHandNow.kind]: { ...previous[penInHandNow.kind], ...setting },
             })),
         },
         minimized,

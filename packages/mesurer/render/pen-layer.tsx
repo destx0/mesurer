@@ -1,5 +1,5 @@
 import { memo, useRef, type PointerEvent as ReactPointerEvent } from "react"
-import { inkPath, type PenInHand } from "../core/ink"
+import { ERASER_RADIUS, inkPath, type PenInHand } from "../core/ink"
 import type { PenPoint, PenStroke, Point } from "../core/types"
 import { boxCenter, rotationFromPointer, type ResizeHandle } from "../core/text-transform"
 import { penBounds, movePenStroke, resizePenStroke, rotatePenStroke } from "../core/pen-transform"
@@ -13,6 +13,7 @@ export const PenLayer = memo(function PenLayer({
   strokes,
   preview,
   inHand,
+  erasing,
   scrollOffset,
   selectionMode,
   selectedIds,
@@ -29,6 +30,8 @@ export const PenLayer = memo(function PenLayer({
   /** The stroke being drawn, and the pen it is drawn with. */
   preview: PenPoint[]
   inHand: PenInHand
+  /** The eraser is in hand: what is shown of a press is where it is, not a stroke. */
+  erasing: boolean
   scrollOffset: Point
   selectionMode: boolean
   selectedIds: string[]
@@ -122,9 +125,11 @@ export const PenLayer = memo(function PenLayer({
           <path d={inkPath(translate(stroke.points), stroke.width, stroke.kind)} fill={stroke.color} pointerEvents="none" data-mesurer-pen="true" data-mesurer-pen-kind={stroke.kind ?? "ink"} data-mesurer-pen-id={stroke.id} />
         </g>
       ))}
-      {preview.length > 0 ? (
+      {preview.length === 0 ? null : erasing ? (
+        <circle cx={preview[0].x - scrollOffset.x} cy={preview[0].y - scrollOffset.y} r={ERASER_RADIUS} fill="rgba(255,255,255,0.5)" stroke="rgba(0,0,0,0.45)" strokeWidth={1} data-mesurer-pen-eraser="true" />
+      ) : (
         <path d={inkPath(translate(preview), inHand.width, inHand.kind)} fill={inHand.color} data-mesurer-pen-preview="true" />
-      ) : null}
+      )}
     </svg>
     {selectionMode ? selectedStrokes.map((stroke) => {
       const box = penBounds(stroke)

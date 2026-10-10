@@ -74,6 +74,32 @@ test("opens the pens from the pen tool's caret, and draws with the one picked as
   await expect(card.getByRole("button", { name: "24px" })).toHaveAttribute("aria-pressed", "true");
 });
 
+test("rubs strokes out with the eraser, a whole press as one step", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+  await activatePen(page);
+  await drawStroke(page);
+  await page.mouse.move(120, 400);
+  await page.mouse.down();
+  await page.mouse.move(260, 420, { steps: 6 });
+  await page.mouse.up();
+  await expect(strokes(page)).toHaveCount(2);
+
+  await page.getByRole("button", { name: "Pens", exact: true }).click();
+  await page.locator("[data-mesurer-pen-card]").getByRole("button", { name: "Eraser", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Eraser (N)" })).toHaveAttribute("aria-pressed", "true");
+
+  // One pass down through both strokes rubs both out, and draws nothing.
+  await page.mouse.move(190, 120);
+  await page.mouse.down();
+  await page.mouse.move(190, 460, { steps: 12 });
+  await page.mouse.up();
+  await expect(strokes(page)).toHaveCount(0);
+
+  // Both come back together.
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(strokes(page)).toHaveCount(2);
+});
+
 test("draws a freehand stroke with a transient preview", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activatePen(page);

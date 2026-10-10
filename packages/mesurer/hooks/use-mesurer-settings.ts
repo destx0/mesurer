@@ -11,7 +11,7 @@ import type {
   ThemeMode,
 } from "../core/persistence";
 import { DEFAULT_PEN_KIND, type PenSettings } from "../core/ink";
-import type { PenKind, PersistentToolMode } from "../core/types";
+import type { PenChoice, PersistentToolMode } from "../core/types";
 import { DEFAULT_SCREENSHOT_SETTINGS, DEFAULT_TOOLBAR_DOCK } from "../core/persistence";
 import { type TextStyleSettings } from "../core/text-style";
 
@@ -103,7 +103,7 @@ export const useMesurerSettings = ({
     persistedSettings.toolbarDock ?? DEFAULT_TOOLBAR_DOCK,
   );
   const [toolbarAutoHide, setToolbarAutoHide] = useState(persistedSettings.toolbarAutoHide ?? false);
-  const [penKind, setPenKind] = useState<PenKind>(persistedSettings.penKind ?? DEFAULT_PEN_KIND);
+  const [penKind, setPenKind] = useState<PenChoice>(persistedSettings.penKind ?? DEFAULT_PEN_KIND);
   const [penSettings, setPenSettings] = useState<PenSettings>(persistedSettings.penSettings ?? {});
   const [colorPickerFormats, setColorPickerFormats] = useState(
     persistedSettings.colorPickerFormats ?? defaults.colorPickerFormats,

@@ -139,6 +139,7 @@ type MesurerOverlayProps = {
     strokes: import("../core/types").PenStroke[]
     preview: import("../core/types").PenPoint[]
     inHand: import("../core/ink").PenInHand
+    erasing: boolean
     scrollOffset: { x: number; y: number }
     selectionMode: boolean
     selectedIds: string[]

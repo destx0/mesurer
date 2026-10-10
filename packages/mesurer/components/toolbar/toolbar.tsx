@@ -1003,7 +1003,7 @@ function ToolbarComponent(
                                           {...tool(mode)}
                                           active={toolMode === mode}
                                           // The pen is named after the one in hand.
-                                          label={mode === "pen" ? PEN_STYLES[pen.kind].label : label}
+                                          label={mode === "pen" ? (pen.kind === "eraser" ? "Eraser" : PEN_STYLES[pen.kind].label) : label}
                                           shortcut={shortcut}
                                           onClick={() => {
                                             if (mode === "pen" && penCardOpen) setOpenMenu(null)

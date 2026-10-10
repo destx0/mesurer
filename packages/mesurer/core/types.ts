@@ -19,6 +19,8 @@ export type PenPoint = Point & { w?: number }
 
 // The pens there are to draw with. Each has its own width and the way its ink lies: see core/ink.ts.
 export type PenKind = "ink" | "marker" | "fineliner"
+// What the pen tool has in hand: one of the pens, or the eraser that rubs their strokes out.
+export type PenChoice = PenKind | "eraser"
 
 export type PenStroke = {
   id: string

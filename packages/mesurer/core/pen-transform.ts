@@ -58,3 +58,22 @@ export const rotatePenStrokeAround = (
     rotation: nextRotation,
   }
 }
+
+// How far a point is from the line between two others.
+const distanceToSegment = (point: Point, from: Point, to: Point) => {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = dx * dx + dy * dy
+  const along = length === 0 ? 0 : Math.max(0, Math.min(1, ((point.x - from.x) * dx + (point.y - from.y) * dy) / length))
+  return Math.hypot(point.x - from.x - dx * along, point.y - from.y - dy * along)
+}
+
+/** Whether a point is on a stroke, or within `reach` of it. */
+export const isOnPenStroke = (stroke: PenStroke, point: Point, reach = 0): boolean => {
+  const box = penBounds(stroke)
+  // The stroke's points are kept as drawn, and turned when it is: the point is turned back.
+  const local = stroke.rotation ? rotatePoint(point, boxCenter(box.x, box.y, box.width, box.height), -stroke.rotation) : point
+  const within = stroke.width / 2 + reach
+  if (local.x < box.x - within || local.x > box.x + box.width + within || local.y < box.y - within || local.y > box.y + box.height + within) return false
+  return stroke.points.some((from, index) => distanceToSegment(local, from, stroke.points[index + 1] ?? from) <= within)
+}

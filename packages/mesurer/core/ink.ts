@@ -31,6 +31,9 @@ export const DEFAULT_PEN_KIND: PenKind = "ink"
 /** The style of a pen, or of ink for one this version does not know. */
 export const penStyle = (kind: PenKind = DEFAULT_PEN_KIND) => PEN_STYLES[kind] ?? PEN_STYLES[DEFAULT_PEN_KIND]
 
+/** How far round the pointer the eraser reaches. */
+export const ERASER_RADIUS = 8
+
 /** What a pen was last set to. Kept for each pen, so each is found as it was left. */
 export type PenSetting = { width?: number; color?: string }
 export type PenSettings = Partial<Record<PenKind, PenSetting>>
