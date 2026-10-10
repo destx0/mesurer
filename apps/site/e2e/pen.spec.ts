@@ -46,7 +46,8 @@ test("opens the pens from the pen tool's caret, and draws with the one picked as
   // The tool is named after the pen in hand, and stays the tool in use.
   await expect(page.getByRole("button", { name: "Marker (N)" })).toHaveAttribute("aria-pressed", "true");
   await expect(card.getByRole("button", { name: "Marker", exact: true })).toHaveAttribute("aria-pressed", "true");
-  // A marker starts at its own width, and its colour is picked in the card.
+  // Pressing the pen in hand again shows its widths. A marker starts at its own.
+  await card.getByRole("button", { name: "Marker", exact: true }).click();
   await expect(card.getByRole("button", { name: "16px" })).toHaveAttribute("aria-pressed", "true");
   await card.getByRole("button", { name: "24px" }).click();
   await card.getByRole("button", { name: "Color", exact: true }).click();
@@ -66,6 +67,7 @@ test("opens the pens from the pen tool's caret, and draws with the one picked as
 
   // Each pen is found as it was left.
   await caret.click();
+  await card.getByRole("button", { name: "Pen", exact: true }).click();
   await card.getByRole("button", { name: "Pen", exact: true }).click();
   await expect(card.getByRole("button", { name: "3px" })).toHaveAttribute("aria-pressed", "true");
   await card.getByRole("button", { name: "Marker", exact: true }).click();
