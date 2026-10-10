@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type Dispatch, type PointerEvent as ReactPointerEvent, type SetStateAction } from "react"
-import { ERASER_RADIUS, INK_WEIGHT, nextInkWeight, type PenInHand } from "../core/ink"
-import { isOnPenStroke } from "../core/pen-transform"
+import { INK_WEIGHT, nextInkWeight, type PenInHand } from "../core/ink"
+import { erasePenStroke } from "../core/pen-transform"
 import type { PenPoint, PenStroke, Point, ToolMode } from "../core/types"
 import { createId } from "../core/utils"
 
@@ -22,8 +22,11 @@ type UsePenPointerOptions = {
   toolMode: ToolMode
   /** The pen in hand, as it is set. */
   pen: PenInHand
-  /** The eraser is in hand instead: a press rubs out the strokes it passes over. */
-  eraser: boolean
+  /**
+   * How far round the pointer the eraser reaches, when it is in hand instead: a press rubs out
+   * what it passes over of each stroke. None with a pen in hand.
+   */
+  eraser: number | null
   penStrokes: PenStroke[]
   scrollOffset: Point
   createActionCommit: () => () => void
@@ -83,26 +86,32 @@ export const usePenPointer = ({
     drawing.length += distance
   }, [pagePoint])
 
-  // Rubs out every stroke between the last place the eraser was and this one. All of a press is
-  // undone as one step.
+  // Rubs out what is under the eraser of every stroke, from the last place it was to this one:
+  // a stroke rubbed through is left in pieces. All of a press is undone as one step.
   const erase = useCallback((sample: { clientX: number; clientY: number }) => {
     const drawing = drawingRef.current
     if (!drawing) return
     const from = drawing.points[drawing.points.length - 1]
     const to = pagePoint(sample)
     const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / ERASER_STEP))
-    let kept = strokesRef.current
+    let left = strokesRef.current
+    let rubbed = false
     for (let step = 1; step <= steps; step++) {
       const at = { x: from.x + ((to.x - from.x) * step) / steps, y: from.y + ((to.y - from.y) * step) / steps }
-      kept = kept.filter((stroke) => !isOnPenStroke(stroke, at, ERASER_RADIUS))
+      left = left.flatMap((stroke) => {
+        const pieces = erasePenStroke(stroke, at, eraser ?? 0)
+        if (!pieces) return [stroke]
+        rubbed = true
+        return pieces
+      })
     }
     drawing.points = [to]
-    if (kept.length === strokesRef.current.length) return
+    if (!rubbed) return
     drawing.commit?.()
-    const gone = new Set(strokesRef.current.filter((stroke) => !kept.includes(stroke)).map((stroke) => stroke.id))
-    strokesRef.current = kept
-    setPenStrokes((strokes) => strokes.filter((stroke) => !gone.has(stroke.id)))
-  }, [pagePoint, setPenStrokes])
+    // The strokes as this press has left them: nothing else changes them while it is held.
+    strokesRef.current = left
+    setPenStrokes(left)
+  }, [eraser, pagePoint, setPenStrokes])
 
   const clearDrawing = useCallback(() => {
     const drawing = drawingRef.current
@@ -129,12 +138,12 @@ export const usePenPointer = ({
       target: event.currentTarget,
       time: event.timeStamp,
       length: 0,
-      commit: eraser ? createActionCommit() : undefined,
+      commit: eraser === null ? undefined : createActionCommit(),
     }
     setPenPreview([point])
     event.currentTarget.setPointerCapture(event.pointerId)
     // A press with the eraser rubs out what is under it, before it has moved at all.
-    if (eraser) erase(event)
+    if (eraser !== null) erase(event)
   }, [createActionCommit, enabled, erase, eraser, pagePoint, setPenPreview, settingsOpen, toolMode])
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {

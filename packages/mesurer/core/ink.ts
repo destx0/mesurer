@@ -10,19 +10,16 @@ const STREAMLINE = 0.5
 const MIN_SPACING = 1
 // What makes each pen its own. `width` is that of a new stroke, one of the `widths` it is offered
 // in; `color` is its own when it does not take the annotations', and says how solid the ink is
-// as well; `thin` and `thick` are the least
-// and the most of it a stroke gets, where the ink is lightest and heaviest (a point with no weight
-// of its own is drawn at the width itself); each end thins over `taper` widths of the stroke, or
-// over half of a stroke shorter than that.
+// as well; `thin` and `thick` are the least and the most of its width a stroke gets, where the
+// ink is lightest and heaviest (a point with no weight of its own is drawn at the width itself);
+// and each end thins over `taper` widths of the stroke, or over half of a stroke shorter than that.
 type PenStyle = { label: string; width: number; widths: readonly number[]; color?: string; thin: number; thick: number; taper: number }
 
 export const PEN_STYLES: Record<PenKind, PenStyle> = {
   // Swells where the hand slows or presses, and thins to a point at both ends.
-  ink: { label: "Pen", width: 3, widths: [2, 3, 5, 8, 12], thin: 0.4, thick: 1.6, taper: 5 },
+  ink: { label: "Pen", width: 3, widths: [2, 3, 6], thin: 0.4, thick: 1.6, taper: 5 },
   // A broad, even band that lets what it is drawn over show through.
-  marker: { label: "Marker", width: 16, widths: [8, 12, 16, 24, 32], color: "#facc1566", thin: 1, thick: 1, taper: 0 },
-  // A thin line of one width.
-  fineliner: { label: "Fineliner", width: 2, widths: [1, 1.5, 2, 3, 4], thin: 1, thick: 1, taper: 0 },
+  marker: { label: "Marker", width: 16, widths: [10, 16, 24], color: "#facc1566", thin: 1, thick: 1, taper: 0 },
 }
 
 export const PEN_KINDS = Object.keys(PEN_STYLES) as PenKind[]
@@ -31,12 +28,13 @@ export const DEFAULT_PEN_KIND: PenKind = "ink"
 /** The style of a pen, or of ink for one this version does not know. */
 export const penStyle = (kind: PenKind = DEFAULT_PEN_KIND) => PEN_STYLES[kind] ?? PEN_STYLES[DEFAULT_PEN_KIND]
 
-/** How far round the pointer the eraser reaches. */
-export const ERASER_RADIUS = 8
+/** How wide the eraser can be, and how wide it starts. */
+export const ERASER_WIDTHS = [8, 16, 32] as const
+export const ERASER_WIDTH = 16
 
 /** What a pen was last set to. Kept for each pen, so each is found as it was left. */
 export type PenSetting = { width?: number; color?: string }
-export type PenSettings = Partial<Record<PenKind, PenSetting>>
+export type PenSettings = Partial<Record<PenKind | "eraser", PenSetting>>
 
 /** A pen as it is set, with all a stroke drawn with it takes from it. */
 export type PenInHand = { kind: PenKind; width: number; color: string }
@@ -71,19 +69,30 @@ export const nextInkWeight = (previous: number, distance: number, elapsed: numbe
 
 type Spot = { x: number; y: number; radius: number; along: number }
 
-// The line the ink follows: the points smoothed and thinned out, each with the half width the
-// stroke has there and how far along the stroke it is.
-const inkLine = (points: readonly PenPoint[], width: number, style: PenStyle): Spot[] => {
-  const line: Spot[] = []
+/**
+ * The points of a stroke with the shake of the hand taken out: the ends stay where they were
+ * put, and what is between is drawn toward what came before. Each keeps its weight.
+ */
+export const smoothInkPoints = (points: readonly PenPoint[]): PenPoint[] => {
   let smooth = points[0]
-  let along = 0
-  points.forEach((point, index) => {
-    const last = index === points.length - 1
-    // The ends stay where they were put; what is between is drawn toward what came before.
+  return points.map((point, index) => {
     smooth =
-      index === 0 || last
+      index === 0 || index === points.length - 1
         ? point
-        : { x: smooth.x + (point.x - smooth.x) * STREAMLINE, y: smooth.y + (point.y - smooth.y) * STREAMLINE }
+        : { ...point, x: smooth.x + (point.x - smooth.x) * STREAMLINE, y: smooth.y + (point.y - smooth.y) * STREAMLINE }
+    return smooth
+  })
+}
+
+// The line the ink follows: the points smoothed (unless they are `fixed`, the line already) and
+// thinned out, each with the half width the stroke has there and how far along the stroke it is.
+const inkLine = (points: readonly PenPoint[], width: number, style: PenStyle, fixed: boolean): Spot[] => {
+  const line: Spot[] = []
+  let along = 0
+  const smoothed = fixed ? points : smoothInkPoints(points)
+  smoothed.forEach((smooth, index) => {
+    const point = points[index]
+    const last = index === points.length - 1
     const previous = line[line.length - 1]
     const step = previous ? Math.hypot(smooth.x - previous.x, smooth.y - previous.y) : 0
     if (previous && step < MIN_SPACING && !last) return
@@ -117,11 +126,11 @@ const through = (points: { x: number; y: number }[]) =>
 
 /**
  * The outline of a stroke of this width through the points, drawn with this pen, as the data of
- * an SVG path to fill.
+ * an SVG path to fill. `fixed` points are the line itself, and are not smoothed.
  */
-export const inkPath = (points: readonly PenPoint[], width: number, kind?: PenKind): string => {
+export const inkPath = (points: readonly PenPoint[], width: number, kind?: PenKind, fixed = false): string => {
   if (points.length === 0) return ""
-  const line = inkLine(points, width, penStyle(kind))
+  const line = inkLine(points, width, penStyle(kind), fixed)
   const first = line[0]
   if (line.length === 1) {
     // A dot: a circle the width of the stroke.

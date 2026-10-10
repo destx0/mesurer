@@ -46,11 +46,10 @@ test("opens the pens from the pen tool's caret, and draws with the one picked as
   // The tool is named after the pen in hand, and stays the tool in use.
   await expect(page.getByRole("button", { name: "Marker (N)" })).toHaveAttribute("aria-pressed", "true");
   await expect(card.getByRole("button", { name: "Marker", exact: true })).toHaveAttribute("aria-pressed", "true");
-  // Pressing the pen in hand again shows its widths. A marker starts at its own.
-  await card.getByRole("button", { name: "Marker", exact: true }).click();
+  // A marker starts at its own width and in its own colour.
   await expect(card.getByRole("button", { name: "16px" })).toHaveAttribute("aria-pressed", "true");
+  await expect(card.getByRole("button", { name: "#facc15" })).toHaveAttribute("aria-pressed", "true");
   await card.getByRole("button", { name: "24px" }).click();
-  await card.getByRole("button", { name: "Color", exact: true }).click();
   await card.getByRole("button", { name: "#22c55e" }).click();
 
   // A press on the page puts the pens away and starts the stroke.
@@ -62,19 +61,18 @@ test("opens the pens from the pen tool's caret, and draws with the one picked as
   await expect(strokes(page)).toHaveCount(2);
   const marker = strokes(page).nth(1);
   await expect(marker).toHaveAttribute("data-mesurer-pen-kind", "marker");
-  // The swatch changed the colour and left it as see-through as a marker starts.
+  // The new colour is as see-through as a marker starts.
   await expect(marker).toHaveAttribute("fill", "#22c55e66");
 
   // Each pen is found as it was left.
   await caret.click();
-  await card.getByRole("button", { name: "Pen", exact: true }).click();
   await card.getByRole("button", { name: "Pen", exact: true }).click();
   await expect(card.getByRole("button", { name: "3px" })).toHaveAttribute("aria-pressed", "true");
   await card.getByRole("button", { name: "Marker", exact: true }).click();
   await expect(card.getByRole("button", { name: "24px" })).toHaveAttribute("aria-pressed", "true");
 });
 
-test("rubs strokes out with the eraser, a whole press as one step", async ({ page }) => {
+test("rubs out what the eraser passes over, a whole press as one step", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activatePen(page);
   await drawStroke(page);
@@ -87,15 +85,19 @@ test("rubs strokes out with the eraser, a whole press as one step", async ({ pag
   await page.getByRole("button", { name: "Pens", exact: true }).click();
   await page.locator("[data-mesurer-pen-card]").getByRole("button", { name: "Eraser", exact: true }).click();
   await expect(page.getByRole("button", { name: "Eraser (N)" })).toHaveAttribute("aria-pressed", "true");
+  // The eraser has its own sizes, in place of a pen's widths and colours.
+  const eraserCard = page.locator("[data-mesurer-pen-card]");
+  await expect(eraserCard.getByRole("group", { name: "Eraser size" }).getByRole("button", { name: "16px" })).toHaveAttribute("aria-pressed", "true");
+  await expect(eraserCard.getByRole("group", { name: "Color" })).toHaveCount(0);
 
-  // One pass down through both strokes rubs both out, and draws nothing.
+  // One pass down through both strokes cuts each in two, and draws nothing.
   await page.mouse.move(190, 120);
   await page.mouse.down();
   await page.mouse.move(190, 460, { steps: 12 });
   await page.mouse.up();
-  await expect(strokes(page)).toHaveCount(0);
+  await expect(strokes(page)).toHaveCount(4);
 
-  // Both come back together.
+  // Both come back whole, together.
   await page.keyboard.press("ControlOrMeta+z");
   await expect(strokes(page)).toHaveCount(2);
 });

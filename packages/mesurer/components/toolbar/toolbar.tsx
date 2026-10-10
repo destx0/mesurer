@@ -1040,6 +1040,7 @@ function ToolbarComponent(
                                                 <PenCard
                                                   pens={pen.pens}
                                                   kind={pen.kind}
+                                                  eraserWidth={pen.eraserWidth}
                                                   onKind={(kind) => {
                                                     // Picking a pen picks it up.
                                                     pen.onKind(kind)

@@ -84,8 +84,9 @@ export type ToolbarPen = {
   /** Every pen, as it is set, and which of them is in hand. */
   pens: PenInHand[];
   kind: PenChoice;
+  eraserWidth: number;
   onKind: (kind: PenChoice) => void;
-  /** Sets the pen in hand. */
+  /** Sets what is in hand: a pen, or the eraser's width. */
   onChange: (setting: PenSetting) => void;
 };
 

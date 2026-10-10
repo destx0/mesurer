@@ -1,25 +1,31 @@
 import { useState, type ReactNode } from "react"
 import { colorToHex, parseCssColor } from "../core/colors"
-import { PEN_STYLES, type PenInHand, type PenSetting } from "../core/ink"
+import { ERASER_WIDTHS, PEN_STYLES, type PenInHand, type PenSetting } from "../core/ink"
 import type { PenChoice, PenKind } from "../core/types"
 import { cn } from "../core/utils"
 import { ColorPicker } from "./color-picker"
 
-// The colours offered for a pen, beside whatever is picked from the picker itself.
-const SWATCHES = ["#ef4444", "#f97316", "#facc15", "#22c55e", "#0d99ff", "#a855f7", "#111827", "#ffffff"]
-
-const CHECKER = "conic-gradient(#d4d4d8 25%, #fff 0 50%, #d4d4d8 0 75%, #fff 0)"
+// The colours a pen is offered in: enough to tell one remark from another on a page, and no
+// more than fit beside its widths. Any other is picked from the last of them.
+const COLORS = ["#ef4444", "#facc15", "#22c55e", "#0d99ff", "#111827"]
 const RAINBOW = "conic-gradient(#ff453a, #ff9f0a, #ffd60a, #30d158, #64d2ff, #0a84ff, #bf5af2, #ff375f, #ff453a)"
 
-// A pen's colour and how solid it is, apart: the pens are drawn in the colour itself, and a
-// marker says how solid on its barrel. A colour this cannot read is drawn as it is, and solid.
+// A pen's colour and how solid it is, apart: the pens are drawn in the colour itself, however
+// see-through their ink. A colour this cannot read is taken as it is, and as solid.
 const inkOf = (color: string) => {
   const sample = parseCssColor(color)
   return sample ? { solid: colorToHex({ ...sample, alpha: 1 }), alpha: sample.alpha } : { solid: color, alpha: 1 }
 }
 
-// The pens stand in the tray with their tips up, each drawn as the thing it is: 40 wide and 104
-// tall, the tray cutting off their lower end. Their barrels are the tray's own tone, a shade
+// A colour as solid as another is: picking one of the colours offered leaves the ink as
+// see-through as it was.
+const withAlpha = (color: string, alpha: number) => {
+  const sample = parseCssColor(color)
+  return sample ? colorToHex({ ...sample, alpha }) : color
+}
+
+// The pens stand in the tray with their tips up, each drawn as the thing it is, on a canvas 40
+// wide and 104 tall, the tray cutting off their lower end. Their barrels are the tray's own tone, a shade
 // deeper so they stand off it with no line drawn round them, and lit from one side like
 // something round (`--msr-pen-*` in styles.css). What is in the pen's colour is lit the same
 // way, by a sheen laid over it, so the colour sits on the pen rather than on top of the drawing.
@@ -33,7 +39,7 @@ const BARREL_STOPS = [0, 0.22, 0.5, 0.86, 1]
 const bandOf = (pen: PenInHand) => {
   const widths = PEN_STYLES[pen.kind].widths
   const nearest = widths.reduce((best, width, index) => (Math.abs(width - pen.width) < Math.abs(widths[best] - pen.width) ? index : best), 0)
-  return 2 + nearest * 2
+  return 3 + nearest * 3
 }
 
 // The band, lit like the barrel it is round.
@@ -53,38 +59,21 @@ const Inked = ({ d, color }: { d: string; color: string }) => (
   </>
 )
 
-type Ink = { solid: string; alpha: number; band: number }
-
-const PEN_SHAPES: Record<PenKind, (ink: Ink) => ReactNode> = {
+const PEN_SHAPES: Record<PenKind, (color: string, band: number) => ReactNode> = {
   // A long tip that swells from a rounded point into the barrel, the ink at its very end.
-  ink: ({ solid, band }) => (
+  ink: (color, band) => (
     <>
       <path d="M20 3c2.4 0 3.5 2.9 4.5 7l5.7 30c.6 3 .8 5 .8 8v56H9V48c0-3 .2-5 .8-8l5.7-30c1-4.1 2.1-7 4.5-7Z" fill={BARREL} />
-      <Inked d="M20 3c2.4 0 3.5 2.9 4.5 7l.8 4.200H14.700l.8-4.200c1-4.1 2.1-7 4.5-7Z" color={solid} />
-      <Band x={9} y={54} width={22} height={band} color={solid} />
+      <Inked d="M20 3c2.4 0 3.5 2.9 4.5 7l.8 4.2H14.7l.8-4.2c1-4.1 2.1-7 4.5-7Z" color={color} />
+      <Band x={9} y={54} width={22} height={band} color={color} />
     </>
   ),
-  // A needle of a nib in a small collar, on a barrel that widens in steps.
-  fineliner: ({ solid, band }) => (
-    <>
-      <path d="M17 18h6l3.5 11h-13Z" fill={BARREL} />
-      <rect x="17.5" y="13" width="5" height="5.5" rx="1" fill={BARREL} />
-      <rect x="12.5" y="29" width="15" height="17.5" rx="1.5" fill={BARREL} />
-      <path d="M12.5 47h15c1.1 0 1.5.8 1.5 2v55H11V49c0-1.2.4-2 1.5-2Z" fill={BARREL} />
-      <rect x="19.2" y="3.5" width="1.6" height="10.5" rx="0.8" fill={solid} />
-      <Band x={11} y={60} width={18} height={band} color={solid} />
-    </>
-  ),
-  // A slanted felt tip on a neck that flares out into the barrel, and how solid its ink is
-  // written under its band.
-  marker: ({ solid, alpha, band }) => (
+  // A slanted felt tip on a neck that flares out into the barrel.
+  marker: (color, band) => (
     <>
       <path d="M14 22h12v5c0 6 5 7 5 15v62H9V42c0-8 5-9 5-15Z" fill={BARREL} />
-      <Inked d="M14 22.500v-10.300c0-1.2.5-1.9 1.5-2.400l7.7-4.200c1.4-.7 2.8.2 2.8 1.700v15.200Z" color={solid} />
-      <Band x={9} y={60} width={22} height={band} color={solid} />
-      <text x="20" y="86" textAnchor="middle" fontSize="8.5" fontWeight="600" letterSpacing="0.6" style={{ fill: "var(--msr-pen-text)" }}>
-        {Math.round(alpha * 100)}
-      </text>
+      <Inked d="M14 22.5v-10.3c0-1.2.5-1.9 1.5-2.4l7.7-4.2c1.4-.7 2.8.2 2.8 1.7v15.2Z" color={color} />
+      <Band x={9} y={60} width={22} height={band} color={color} />
     </>
   ),
 }
@@ -93,19 +82,20 @@ const PEN_SHAPES: Record<PenKind, (ink: Ink) => ReactNode> = {
 const ERASER_SHAPE = (
   <>
     <path d="M11 30h18v74H11Z" fill={BARREL} />
-    <Inked d="M11 31V20c0-6.5 3-10.5 9-10.500s9 4 9 10.500v11Z" color="#f0a8a3" />
+    <Inked d="M11 31V20c0-6.5 3-10.5 9-10.5s9 4 9 10.5v11Z" color="#f0a8a3" />
   </>
 )
 
 const surface = "mesurer-menu-surface msr:bg-surface msr:shadow-floating"
 
 // What the pen tool draws with, opened from the tool's caret, after the tray of pens on a phone:
-// the pens and the eraser stand in a tray, the one in hand raised, beside a well of the pen's
-// colour. Pressing the pen in hand again shows how wide it draws; pressing the well shows the
-// colour picker, which says how solid the ink is too. Each pen keeps what it was set to.
+// the pens and the eraser stand in a small tray, the one in hand raised. Under it is how wide
+// what is in hand draws, or rubs out, and for a pen in what colour; the last of the colours
+// opens a picker for any colour, and for how solid the ink is. Each keeps what it was set to.
 export function PenCard({
   pens,
   kind,
+  eraserWidth,
   onKind,
   onChange,
 }: {
@@ -113,19 +103,17 @@ export function PenCard({
   pens: PenInHand[]
   /** What is in hand: one of the pens, or the eraser. */
   kind: PenChoice
+  /** How wide the eraser is set. */
+  eraserWidth: number
   onKind: (kind: PenChoice) => void
-  /** Sets the pen in hand. */
+  /** Sets what is in hand: a pen, or the eraser's width. */
   onChange: (setting: PenSetting) => void
 }) {
-  // What is shown under the tray: the widths of the pen in hand, its colour, or nothing.
-  const [panel, setPanel] = useState<"width" | "color" | null>(null)
+  const [picking, setPicking] = useState(false)
   const inHand = pens.find((pen) => pen.kind === kind)
-  // The well shows a pen's colour: with the eraser in hand, the first pen's, and it is not set.
-  const shown = inHand ?? pens[0]
-  if (!shown) return null
-  const toggle = (next: "width" | "color") => setPanel((current) => (current === next ? null : next))
+  const ink = inHand ? inkOf(inHand.color) : null
 
-  const tool = (choice: PenChoice, label: string, drawing: ReactNode, onPress: () => void, expanded?: boolean) => {
+  const tool = (choice: PenChoice, label: string, drawing: ReactNode) => {
     const held = choice === kind
     return (
       <button
@@ -133,14 +121,13 @@ export function PenCard({
         type="button"
         aria-label={label}
         aria-pressed={held}
-        aria-expanded={expanded}
         title={label}
         className="msr:rounded-control msr:bg-transparent msr:outline-none msr:transition-transform msr:duration-200 msr:ease-out msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)]"
         // What is in hand stands up out of the tray; the rest sits lower in it.
-        style={{ transform: `translateY(${held ? 8 : 28}px)` }}
-        onClick={onPress}
+        style={{ transform: `translateY(${held ? 6 : 20}px)` }}
+        onClick={() => onKind(choice)}
       >
-        <svg width="40" height="104" viewBox="0 0 40 104" aria-hidden="true">
+        <svg width="28" height="73" viewBox="0 0 40 104" aria-hidden="true">
           {drawing}
         </svg>
       </button>
@@ -148,8 +135,8 @@ export function PenCard({
   }
 
   return (
-    <section className="msr:flex msr:w-72 msr:flex-col msr:gap-2 msr:text-[11px] msr:text-ink-700" aria-label="Pens" data-mesurer-pen-card>
-      <div className={cn(surface, "msr:flex msr:h-20 msr:items-center msr:overflow-hidden msr:rounded-[28px] msr:pr-4 msr:pl-5")}>
+    <section className="msr:flex msr:w-56 msr:flex-col msr:items-center msr:gap-2 msr:text-[11px] msr:text-ink-700" aria-label="Pens" data-mesurer-pen-card>
+      <div className={cn(surface, "msr:flex msr:h-14 msr:items-start msr:justify-center msr:gap-3 msr:overflow-hidden msr:rounded-[20px] msr:px-4")} role="group" aria-label="Pen">
         <svg width="0" height="0" className="msr:absolute" aria-hidden="true">
           <defs>
             <linearGradient id="mesurer-pen-barrel" x1="0" x2="1" y1="0" y2="0">
@@ -166,71 +153,82 @@ export function PenCard({
             </linearGradient>
           </defs>
         </svg>
-        <div className="msr:flex msr:h-full msr:flex-1 msr:items-start msr:gap-2" role="group" aria-label="Pen">
-          {pens.map((pen) => {
-            const held = pen.kind === kind
-            return tool(
-              pen.kind,
-              PEN_STYLES[pen.kind].label,
-              PEN_SHAPES[pen.kind]({ ...inkOf(pen.color), band: bandOf(pen) }),
-              // Pressing the pen in hand again shows its widths.
-              () => (held ? toggle("width") : onKind(pen.kind)),
-              held ? panel === "width" : undefined,
-            )
-          })}
-          {tool("eraser", "Eraser", ERASER_SHAPE, () => {
-            setPanel(null)
-            onKind("eraser")
-          })}
-        </div>
-        {/* The colour of the pen in hand, in a ring of every colour: it opens the picker. */}
-        <button
-          type="button"
-          aria-label="Color"
-          aria-expanded={panel === "color"}
-          title="Color"
-          disabled={!inHand}
-          className="msr:flex msr:size-9 msr:shrink-0 msr:items-center msr:justify-center msr:rounded-full msr:outline-none msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)] msr:disabled:opacity-40"
-          style={{ background: RAINBOW }}
-          onClick={() => toggle("color")}
-        >
-          <span className="msr:flex msr:size-[28px] msr:items-center msr:justify-center msr:rounded-full msr:bg-surface">
-            <span
-              className="msr:size-[22px] msr:rounded-full"
-              style={{ background: `linear-gradient(${shown.color}, ${shown.color}), ${CHECKER}`, backgroundSize: "auto, 8px 8px" }}
-            />
-          </span>
-        </button>
+        {pens.map((pen) => tool(pen.kind, PEN_STYLES[pen.kind].label, PEN_SHAPES[pen.kind](inkOf(pen.color).solid, bandOf(pen))))}
+        {tool("eraser", "Eraser", ERASER_SHAPE)}
       </div>
 
-      {inHand && panel === "width" ? (
-        <div className={cn(surface, "msr:flex msr:gap-1 msr:rounded-[20px] msr:p-2")} role="group" aria-label="Width">
-          {PEN_STYLES[inHand.kind].widths.map((width, index) => (
-            <button
-              key={width}
-              type="button"
-              aria-label={`${width}px`}
-              aria-pressed={width === inHand.width}
-              title={`${width}px`}
-              className={cn(
-                "msr:flex msr:h-11 msr:flex-1 msr:items-center msr:justify-center msr:rounded-[12px] msr:outline-none msr:focus-visible:shadow-[inset_0_0_0_1px_var(--msr-accent)]",
-                // The width in use is the one on a plate of its own.
-                width === inHand.width ? "msr:bg-ink-900 msr:text-surface" : "msr:text-ink-900 msr:hover:bg-ink-100",
-              )}
-              onClick={() => onChange({ width })}
-            >
-              {/* Drawn from thin to thick across the row, not to scale: a marker's would not fit. */}
-              <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-                <line x1="8" y1="8" x2="20" y2="20" stroke="currentColor" strokeWidth={1.25 + index * 2.4} strokeLinecap="round" />
-              </svg>
-            </button>
-          ))}
+      {/* What is in hand is set to: how wide, and for a pen in what colour. */}
+      {/* A pen's fills the card; the eraser's, with only its sizes, is as wide as they are, under the tray. */}
+      <div className={cn(surface, "msr:flex msr:min-w-0 msr:items-center msr:gap-2 msr:rounded-[20px] msr:p-2", inHand && "msr:w-full")}>
+        <div className="msr:flex msr:shrink-0 msr:gap-0.5" role="group" aria-label={inHand ? "Width" : "Eraser size"}>
+          {(inHand ? PEN_STYLES[inHand.kind].widths : ERASER_WIDTHS).map((width, index) => {
+            const chosen = width === (inHand ? inHand.width : eraserWidth)
+            return (
+              <button
+                key={width}
+                type="button"
+                aria-label={`${width}px`}
+                aria-pressed={chosen}
+                title={`${width}px`}
+                className={cn(
+                  "msr:flex msr:size-6 msr:items-center msr:justify-center msr:rounded-[8px] msr:outline-none msr:focus-visible:shadow-[inset_0_0_0_1px_var(--msr-accent)]",
+                  // The width in use is the one on a plate of its own.
+                  chosen ? "msr:bg-ink-900 msr:text-surface" : "msr:text-ink-900 msr:hover:bg-ink-100",
+                )}
+                onClick={() => onChange({ width })}
+              >
+                {/* From thin to thick across the row, not to scale: a marker's would not fit. A
+                    pen's is drawn as a stroke, the eraser's as the round thing it is. */}
+                <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                  {inHand ? (
+                    <line x1="6" y1="6" x2="14" y2="14" stroke="currentColor" strokeWidth={1.5 + index * 2.25} strokeLinecap="round" />
+                  ) : (
+                    <circle cx="10" cy="10" r={2.5 + index * 2.25} fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  )}
+                </svg>
+              </button>
+            )
+          })}
         </div>
-      ) : null}
+        {inHand && ink ? (
+          <>
+            <span className="msr:h-4 msr:w-px msr:shrink-0 msr:bg-ink-200" aria-hidden="true" />
+            <div className="msr:flex msr:min-w-0 msr:flex-1 msr:items-center msr:justify-between" role="group" aria-label="Color">
+              {COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={color}
+                  aria-pressed={color === ink.solid}
+                  className={cn(
+                    "msr:size-4 msr:shrink-0 msr:rounded-full msr:border msr:border-black/10 msr:outline-none msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)]",
+                    color === ink.solid && "msr:shadow-[0_0_0_2px_var(--msr-surface),0_0_0_3px_var(--msr-color-ink-500)]",
+                  )}
+                  style={{ backgroundColor: color }}
+                  onClick={() => onChange({ color: withAlpha(color, ink.alpha) })}
+                />
+              ))}
+              {/* Any other colour, and how solid the ink is. */}
+              <button
+                type="button"
+                aria-label="More colors"
+                aria-expanded={picking}
+                title="More colors"
+                className={cn(
+                  "msr:size-4 msr:shrink-0 msr:rounded-full msr:outline-none msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)]",
+                  picking && "msr:shadow-[0_0_0_2px_var(--msr-surface),0_0_0_3px_var(--msr-color-ink-500)]",
+                )}
+                style={{ background: RAINBOW }}
+                onClick={() => setPicking((open) => !open)}
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
 
-      {inHand && panel === "color" ? (
-        <div className={cn(surface, "msr:rounded-[20px] msr:p-3")}>
-          <ColorPicker value={inHand.color} swatches={SWATCHES} onChange={(color) => onChange({ color })} />
+      {inHand && picking ? (
+        <div className={cn(surface, "msr:w-full msr:rounded-[20px] msr:p-3")}>
+          <ColorPicker value={inHand.color} onChange={(color) => onChange({ color })} />
         </div>
       ) : null}
     </section>

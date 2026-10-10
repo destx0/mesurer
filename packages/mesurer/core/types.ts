@@ -18,7 +18,7 @@ export type Arrow = {
 export type PenPoint = Point & { w?: number }
 
 // The pens there are to draw with. Each has its own width and the way its ink lies: see core/ink.ts.
-export type PenKind = "ink" | "marker" | "fineliner"
+export type PenKind = "ink" | "marker"
 // What the pen tool has in hand: one of the pens, or the eraser that rubs their strokes out.
 export type PenChoice = PenKind | "eraser"
 
@@ -26,6 +26,11 @@ export type PenStroke = {
   id: string
   /** The pen it was drawn with. One drawn before there were several was drawn in ink. */
   kind?: PenKind
+  /**
+   * Its points are the line the ink follows, as it is drawn, and are not smoothed again. Set on
+   * what the eraser leaves of a stroke, so that rubbing part of it out moves none of the rest.
+   */
+  fixed?: boolean
   points: PenPoint[]
   color: string
   width: number

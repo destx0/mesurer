@@ -44,7 +44,7 @@ import { useArrowsPointer } from "./hooks/use-arrows-pointer";
 import { usePenPointer } from "./hooks/use-pen-pointer";
 import { copyCommentsForAgent, useCommentPointer } from "./comments";
 import { removePreviewSelection, scrollElementIntoView } from "./core/responsive";
-import { PEN_KINDS, penInHand } from "./core/ink";
+import { ERASER_WIDTH, PEN_KINDS, penInHand } from "./core/ink";
 import { createLayoutGuide, type LayoutGuide } from "./core/layout-guides";
 import { getRectFromPoints } from "./core/geometry";
 import { attachPinnedGuideTarget } from "./core/distances";
@@ -1320,12 +1320,15 @@ export function MesurerClient({
   // Every pen as it is set, and the one in hand.
   const pens = PEN_KINDS.map((kind) => penInHand(kind, settings.penSettings, settings.arrowColor));
   const penInHandNow = pens.find((pen) => pen.kind === settings.penKind) ?? pens[0];
+  // How far the eraser reaches, when it is what is in hand.
+  const eraserWidth = settings.penSettings.eraser?.width ?? ERASER_WIDTH;
+  const eraserRadius = settings.penKind === "eraser" ? eraserWidth / 2 : null;
   const penPointer = usePenPointer({
     enabled,
     settingsOpen,
     toolMode,
     pen: penInHandNow,
-    eraser: settings.penKind === "eraser",
+    eraser: eraserRadius,
     penStrokes,
     scrollOffset,
     createActionCommit,
@@ -1794,7 +1797,7 @@ export function MesurerClient({
           strokes: penStrokes,
           preview: penPreview,
           inHand: penInHandNow,
-          erasing: settings.penKind === "eraser",
+          eraser: eraserRadius,
           scrollOffset,
           selectionMode: toolMode === "selection",
           selectedIds: selectedPenStrokeIds,
@@ -1896,12 +1899,12 @@ export function MesurerClient({
         pen: {
           pens,
           kind: settings.penKind,
+          eraserWidth,
           onKind: settings.setPenKind,
-          // The pen that is set is the one shown as in hand: with the eraser, the first.
           onChange: (setting) =>
             settings.setPenSettings((previous) => ({
               ...previous,
-              [penInHandNow.kind]: { ...previous[penInHandNow.kind], ...setting },
+              [settings.penKind]: { ...previous[settings.penKind], ...setting },
             })),
         },
         minimized,

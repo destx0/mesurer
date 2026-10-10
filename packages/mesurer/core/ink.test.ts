@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { inkPath, nextInkWeight, penInHand } from "./ink"
+import { inkPath, nextInkWeight, penInHand, smoothInkPoints } from "./ink"
 
 // The numbers of a path, in order.
 const numbers = (path: string) => (path.match(/-?\d+(\.\d+)?/g) ?? []).map(Number)
@@ -66,6 +66,21 @@ describe("inkPath", () => {
   })
 })
 
+describe("smoothInkPoints", () => {
+  const points = [{ x: 0, y: 0, w: 0.2 }, { x: 10, y: 8, w: 0.4 }, { x: 20, y: -8, w: 0.6 }, { x: 30, y: 0, w: 0.8 }]
+
+  it("keeps the ends where they were put, and each point's weight", () => {
+    const smoothed = smoothInkPoints(points)
+    expect(smoothed[0]).toEqual(points[0])
+    expect(smoothed[3]).toEqual(points[3])
+    expect(smoothed.map((point) => point.w)).toEqual([0.2, 0.4, 0.6, 0.8])
+  })
+
+  it("is the line the ink is drawn along: drawn from it as fixed, a stroke looks the same", () => {
+    expect(inkPath(smoothInkPoints(points), 4, "ink", true)).toBe(inkPath(points, 4, "ink"))
+  })
+})
+
 describe("penInHand", () => {
   it("starts a pen at its own width, in the annotations' colour unless it has its own", () => {
     expect(penInHand("ink", {}, "red")).toEqual({ kind: "ink", width: 3, color: "red" })
@@ -73,9 +88,9 @@ describe("penInHand", () => {
     expect(penInHand("marker", {}, "red")).toEqual({ kind: "marker", width: 16, color: "#facc1566" })
   })
 
-  it("keeps what each pen was set to, apart from the others", () => {
+  it("keeps what each pen was set to, apart from the other", () => {
     const settings = { marker: { width: 24, color: "#22c55e" } }
     expect(penInHand("marker", settings, "red")).toEqual({ kind: "marker", width: 24, color: "#22c55e" })
-    expect(penInHand("fineliner", settings, "red")).toEqual({ kind: "fineliner", width: 2, color: "red" })
+    expect(penInHand("ink", settings, "red")).toEqual({ kind: "ink", width: 3, color: "red" })
   })
 })

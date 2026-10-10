@@ -306,7 +306,7 @@ const isPenChoice = (value: unknown): value is PenChoice =>
 const normalizePenSettings = (input: unknown): PenSettings => {
   const settings: PenSettings = {}
   if (!input || typeof input !== "object") return settings
-  for (const kind of PEN_KINDS) {
+  for (const kind of [...PEN_KINDS, "eraser" as const]) {
     const own = (input as Record<string, unknown>)[kind]
     if (!own || typeof own !== "object") continue
     const { width, color } = own as Record<string, unknown>
