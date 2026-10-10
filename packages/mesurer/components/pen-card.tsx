@@ -23,32 +23,40 @@ const inkOf = (color: string) => {
 // across like something round, with the ink's colour at the tip.
 const BARREL = "url(#mesurer-pen-barrel)"
 const EDGE = { stroke: "rgba(255,255,255,0.14)", strokeWidth: 0.75 }
-const RING = "rgba(0,0,0,0.55)"
 
-const PEN_SHAPES: Record<PenKind, (ink: { solid: string; alpha: number }) => ReactNode> = {
+// The band round a pen's barrel is in the pen's colour, and as tall as the pen draws wide: the
+// thinnest of its widths the thinnest band, the widest the tallest.
+const bandOf = (pen: PenInHand) => {
+  const widths = PEN_STYLES[pen.kind].widths
+  const nearest = widths.reduce((best, width, index) => (Math.abs(width - pen.width) < Math.abs(widths[best] - pen.width) ? index : best), 0)
+  return 2 + nearest * 2
+}
+const BAND = { style: { transition: "height 150ms ease-out" } }
+
+const PEN_SHAPES: Record<PenKind, (ink: { solid: string; alpha: number; band: number }) => ReactNode> = {
   // A long cone that comes to a point, the ink at its very tip.
-  ink: ({ solid }) => (
+  ink: ({ solid, band }) => (
     <>
       <path d="M18 4 28 46v54H8V46Z" fill={BARREL} {...EDGE} />
       <path d="M18 4 21.1 17h-6.2Z" fill={solid} />
-      <rect x="8" y="52" width="20" height="2.5" fill={RING} />
+      <rect x="8" y="52" width="20" height={band} fill={solid} {...BAND} />
     </>
   ),
   // A thin nib on a stepped barrel.
-  fineliner: ({ solid }) => (
+  fineliner: ({ solid, band }) => (
     <>
       <path d="M15 17h6l2 7h2v9h2v67H9V33h2v-9h2Z" fill={BARREL} {...EDGE} />
       <rect x="17" y="6" width="2" height="11" rx="0.6" fill={solid} />
-      <rect x="9" y="58" width="18" height="2.5" fill={RING} />
+      <rect x="9" y="58" width="18" height={band} fill={solid} {...BAND} />
     </>
   ),
-  // A slanted felt tip on a bottle-shouldered barrel, a band of its colour round it, and how
-  // solid its ink is written under the band.
-  marker: ({ solid, alpha }) => (
+  // A slanted felt tip on a bottle-shouldered barrel, and how solid its ink is written under
+  // its band.
+  marker: ({ solid, alpha, band }) => (
     <>
       <path d="M12 23h12c0 9 5 9 5 18v59H7V41c0-9 5-9 5-18Z" fill={BARREL} {...EDGE} />
       <path d="M12 23V11.5a2 2 0 0 1 1.1-1.8l8-4A2 2 0 0 1 24 7.5V23Z" fill={solid} />
-      <rect x="7" y="58" width="22" height="9" fill={solid} />
+      <rect x="7" y="58" width="22" height={band} fill={solid} {...BAND} />
       <text x="18" y="83" textAnchor="middle" fontSize="8.5" fontWeight="600" letterSpacing="0.6" fill="rgba(255,255,255,0.72)">
         {Math.round(alpha * 100)}
       </text>
@@ -114,7 +122,7 @@ export function PenCard({
                 onClick={() => (held ? toggle("width") : onKind(pen.kind))}
               >
                 <svg width="36" height="100" viewBox="0 0 36 100" aria-hidden="true">
-                  {PEN_SHAPES[pen.kind](inkOf(pen.color))}
+                  {PEN_SHAPES[pen.kind]({ ...inkOf(pen.color), band: bandOf(pen) })}
                 </svg>
               </button>
             )
