@@ -11,7 +11,7 @@ import {
   settingsFocusSection,
   type SettingsFocusSection,
 } from "./components/settings-panel";
-import { ColorPicker } from "./components/color-picker";
+import { ColorPanel } from "./components/color-panel";
 import { MesurerPortal } from "./components/mesurer-portal";
 import { useColorPicker } from "./hooks/use-color-picker";
 import { useGuideDragHold } from "./hooks/use-guide-drag-hold";
@@ -1936,7 +1936,7 @@ export function MesurerClient({
           setActive: colorPicker.setActive,
           onClick: openColorPicker,
           panel: (
-            <ColorPicker
+            <ColorPanel
               active={colorPicker.active}
               sample={colorPicker.sample}
               unsupported={colorPicker.unsupported}

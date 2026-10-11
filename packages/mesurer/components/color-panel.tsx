@@ -1,0 +1,138 @@
+
+import { useCallback, useEffect, useRef } from "react"
+import type { ColorPickerFormat, ColorSample } from "../core/colors"
+import { colorToHex, formatColor } from "../core/colors"
+import { CopyableValue } from "./copyable-value"
+import { useTooltip } from "./tooltip"
+
+type ColorPanelProps = {
+  active: boolean
+  sample: ColorSample | null
+  unsupported: boolean
+  formats: ColorPickerFormat[]
+  favoriteFormat: ColorPickerFormat
+  ownerWindow: Window
+  onClose: () => void
+}
+
+export function ColorPanel({
+  active,
+  sample,
+  unsupported,
+  formats,
+  favoriteFormat,
+  ownerWindow,
+  onClose,
+}: ColorPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const tooltip = useTooltip()
+
+  const copyValue = useCallback(
+    (value: string) => {
+      const clipboardWrite = ownerWindow.navigator.clipboard?.writeText(value)
+      void clipboardWrite?.catch(() => undefined)
+      tooltip.onTooltipLeave()
+    },
+    [ownerWindow, tooltip],
+  )
+
+  useEffect(() => {
+    if (!active) return
+    let closeTimer: number | null = null
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      const panel = panelRef.current
+      if (panel && event.composedPath().includes(panel)) return
+      closeTimer = ownerWindow.setTimeout(onClose, 0)
+    }
+    ownerWindow.addEventListener("pointerdown", closeOnOutsidePointerDown)
+    return () => {
+      if (closeTimer !== null) ownerWindow.clearTimeout(closeTimer)
+      ownerWindow.removeEventListener("pointerdown", closeOnOutsidePointerDown)
+    }
+  }, [active, onClose, ownerWindow])
+
+  if (!active || (!sample && !unsupported)) return null
+
+  const headerFormat = formats.includes(favoriteFormat)
+    ? favoriteFormat
+    : formats[0]
+  const secondaryFormats = headerFormat
+    ? formats.filter((format) => format !== headerFormat)
+    : []
+
+  return (
+    <div
+      ref={panelRef}
+      className="mesurer-color-picker msr:pointer-events-auto msr:z-[100] msr:w-max msr:min-w-36 msr:cursor-default msr:rounded-lg msr:bg-surface msr:px-2 msr:py-2 msr:font-mono msr:text-[10px] msr:leading-4 msr:shadow-floating"
+      role="dialog"
+      aria-label="Selected color values"
+      onMouseLeave={tooltip.onTooltipContainerLeave}
+    >
+      {unsupported ? (
+        <div className="msr:flex msr:items-start msr:gap-2">
+          <span className="msr:text-ink-500">Screen color picker unavailable.</span>
+          <button
+            type="button"
+            className="msr:text-ink-500 msr:hover:text-ink-900"
+            aria-label="Close color picker message"
+            onClick={onClose}
+          >
+            x
+          </button>
+        </div>
+      ) : sample ? (
+        <>
+          {headerFormat ? (
+            <div
+              className={
+                secondaryFormats.length > 0
+                  ? "msr:mb-1 msr:flex msr:items-center msr:gap-1.5 msr:border-b msr:border-ink-200 msr:pb-1"
+                  : "msr:flex msr:items-center msr:gap-1.5"
+              }
+            >
+              <span
+                className="msr:size-3 msr:shrink-0 msr:rounded-full msr:border msr:border-ink-300"
+                style={{ backgroundColor: colorToHex(sample) }}
+                aria-hidden="true"
+              />
+              <CopyableValue
+                id={headerFormat}
+                value={formatColor(sample, headerFormat)}
+                onCopy={() =>
+                  copyValue(formatColor(sample, headerFormat))
+                }
+                tooltip={tooltip}
+                className="msr:cursor-default msr:font-medium msr:tabular-nums msr:text-ink-900 msr:hover:underline"
+              />
+            </div>
+          ) : (
+            <div className="msr:flex msr:items-center">
+              <span
+                  className="msr:size-3 msr:shrink-0 msr:rounded-full msr:border msr:border-ink-300"
+                style={{ backgroundColor: colorToHex(sample) }}
+                aria-hidden="true"
+              />
+            </div>
+          )}
+          {secondaryFormats.map((format) => {
+            const value = formatColor(sample, format)
+            return (
+              <div key={format} className="msr:flex msr:items-center msr:gap-2">
+                <span className="msr:w-9 msr:text-ink-500">
+                  {format}
+                </span>
+                <CopyableValue
+                  id={format}
+                  value={value}
+                  onCopy={() => copyValue(value)}
+                  tooltip={tooltip}
+                  className="msr:cursor-default msr:tabular-nums msr:text-ink-900 msr:hover:underline"
+                />
+              </div>
+            )
+          })}
+        </>
+      ) : null}
+    </div>
+  )
+}

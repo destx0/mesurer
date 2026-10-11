@@ -2,6 +2,13 @@ import { expect, test, type Page } from "@playwright/test";
 
 const strokes = (page: Page) => page.locator('[data-mesurer-pen="true"]');
 
+// Where a stroke's outline starts. Ink is drawn smoothed, so its points sit within a pixel of
+// the ones the pointer gave, not on them.
+const outlineStart = (d: string) => {
+  const [x, y] = d.match(/^M(-?[\d.]+) (-?[\d.]+)/)!.slice(1).map(Number);
+  return { x, y };
+};
+
 const activatePen = async (page: Page) => {
   await expect(page.locator(".mesurer-toolbar-tool-switch")).toBeVisible();
   await page.getByRole("button", { name: "Annotate tools (2)" }).click();
@@ -90,7 +97,10 @@ test("rubs out what the eraser passes over, a whole press as one step", async ({
   await expect(eraserCard.getByRole("group", { name: "Eraser size" }).getByRole("button", { name: "16px" })).toHaveAttribute("aria-pressed", "true");
   await expect(eraserCard.getByRole("group", { name: "Color" })).toHaveCount(0);
 
-  // One pass down through both strokes cuts each in two, and draws nothing.
+  // The card hangs over the page, so it is put away before the pass down through both strokes,
+  // which cuts each in two and draws nothing.
+  await page.getByRole("button", { name: "Pens", exact: true }).click();
+  await expect(page.locator("[data-mesurer-pen-card]")).toHaveCount(0);
   await page.mouse.move(190, 120);
   await page.mouse.down();
   await page.mouse.move(190, 460, { steps: 12 });
@@ -175,7 +185,10 @@ test("marquee-selects text and pen annotations in Selection mode", async ({ page
   await page.mouse.up();
 
   await expect(page.locator('[data-mesurer-text="true"]')).toHaveAttribute("style", /left: 330px/);
-  await expect(strokes(page)).toHaveAttribute("d", /M 150 190/);
+  await expect.poll(async () => outlineStart((await strokes(page).getAttribute("d")) ?? "")).toEqual({
+    x: expect.closeTo(150, 0),
+    y: expect.closeTo(190, 0),
+  });
 
 });
 
@@ -440,7 +453,7 @@ test("mirrors a stroke when resizing past the opposite edge", async ({ page }) =
   await page.mouse.up();
 
   const path = await strokes(page).getAttribute("d");
-  expect(path).toContain("M 120 160");
+  expect(outlineStart(path!)).toEqual({ x: expect.closeTo(120, 0), y: expect.closeTo(160, 0) });
   expect(path).toMatch(/-\d|\b\d{1,2} /);
 });
 

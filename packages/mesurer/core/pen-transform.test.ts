@@ -56,12 +56,14 @@ describe("erasePenStroke", () => {
   })
 
   it("leaves the pieces of a turned stroke where they were, no longer turned", () => {
-    // Turned a quarter turn about its middle, the stroke stands where x is 50.
+    // Turned a quarter turn about its middle, the stroke stands where x is 50, and the pieces
+    // stay there. The box is at least a pixel tall, so its middle is half a pixel down the page
+    // (the centre the stroke is drawn turned about), and that is where x is 50.5.
     const pieces = erasePenStroke(stroke(90), { x: 50, y: 0 }, 8)!
     expect(pieces).toHaveLength(2)
     for (const piece of pieces) {
       expect(piece.rotation).toBeUndefined()
-      for (const point of piece.points) expect(point.x).toBeCloseTo(50, 5)
+      for (const point of piece.points) expect(point.x).toBeCloseTo(50.5, 5)
     }
   })
 })
