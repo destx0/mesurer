@@ -96,6 +96,7 @@ export function PenCard({
   pens,
   kind,
   eraserWidth,
+  above = false,
   onKind,
   onChange,
 }: {
@@ -105,6 +106,11 @@ export function PenCard({
   kind: PenChoice
   /** How wide the eraser is set. */
   eraserWidth: number
+  /**
+   * The card is above the toolbar, not below it. The tray stays the part next to the toolbar
+   * either way, and what it is set to stacks away from it.
+   */
+  above?: boolean
   onKind: (kind: PenChoice) => void
   /** Sets what is in hand: a pen, or the eraser's width. */
   onChange: (setting: PenSetting) => void
@@ -135,7 +141,12 @@ export function PenCard({
   }
 
   return (
-    <section className="msr:flex msr:w-56 msr:flex-col msr:items-center msr:gap-2 msr:text-[11px] msr:text-ink-700" aria-label="Pens" data-mesurer-pen-card>
+    // Its parts are as far from each other as the card is from the toolbar.
+    <section
+      className={cn("msr:flex msr:w-56 msr:items-center msr:gap-1 msr:text-[11px] msr:text-ink-700", above ? "msr:flex-col-reverse" : "msr:flex-col")}
+      aria-label="Pens"
+      data-mesurer-pen-card
+    >
       <div className={cn(surface, "msr:flex msr:h-14 msr:items-start msr:justify-center msr:gap-3 msr:overflow-hidden msr:rounded-[20px] msr:px-4")} role="group" aria-label="Pen">
         <svg width="0" height="0" className="msr:absolute" aria-hidden="true">
           <defs>

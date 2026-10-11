@@ -1016,7 +1016,7 @@ function ToolbarComponent(
                                       if (mode !== "pen") return button
                                       // The pen has its pens behind a caret: which one, how wide and what colour.
                                       return (
-                                        <div key={mode} ref={penAnchorRef} className="mesurer-toolbar-flow mesurer-toolbar-caret-anchor msr:relative msr:flex msr:flex-none">
+                                        <div key={mode} ref={penAnchorRef} className="mesurer-toolbar-flow mesurer-toolbar-caret-anchor msr:relative msr:-ml-1 msr:flex msr:flex-none">
                                           {button}
                                           <ToolbarCaretButton
                                             label="Pens"
@@ -1041,6 +1041,7 @@ function ToolbarComponent(
                                                   pens={pen.pens}
                                                   kind={pen.kind}
                                                   eraserWidth={pen.eraserWidth}
+                                                  above={penCardPlacement.side === "top"}
                                                   onKind={(kind) => {
                                                     // Picking a pen picks it up.
                                                     pen.onKind(kind)
