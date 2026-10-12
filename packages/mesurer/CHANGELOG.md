@@ -1,5 +1,13 @@
 # mesurer
 
+## 0.2.6
+
+- add responsive previews (`B`): the page at several screen sizes side by side, with Inspect, Comments, Guides, and X-ray working in each
+- add comments inside previews, copied grouped by URL and viewport
+- change `M` to toggle Comments, not Mesurer on/off
+- change Persist to on by default
+- fix motion card scope, stuck trimmed video exports, and page shortcuts firing while typing in the extension
+
 ## 0.2.5
 
 - add a toolbar dock that snaps to the edges and corners of the screen, with a vertical layout on the left and right; choose Free in Settings to keep the toolbar floating
