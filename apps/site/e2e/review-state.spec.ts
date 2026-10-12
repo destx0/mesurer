@@ -416,7 +416,9 @@ test("draws the images another origin serves without CORS, read through the host
       const context = canvas.getContext("2d")!;
       context.drawImage(bitmap, 0, 0);
       return {
-        centres: [460, 660].map((x) => [...context.getImageData(x * scale, 360 * scale, 1, 1).data.slice(0, 3)]),
+        // The picture is saved in a format that gives up a little exactness: a channel all but
+        // full or all but empty is read as full or empty.
+        centres: [460, 660].map((x) => [...context.getImageData(x * scale, 360 * scale, 1, 1).data.slice(0, 3)].map((channel) => (channel >= 240 ? 255 : channel <= 15 ? 0 : channel))),
         asked: [...asked].sort(),
         fetchRestored: window.fetch === fetchBefore,
         ownFetch: duringCapture ? ownFetch : "not during the capture",
