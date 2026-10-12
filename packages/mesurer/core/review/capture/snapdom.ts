@@ -118,6 +118,16 @@ const liveDocument = (rawUrl: string, kept: Map<string, string>) => {
 }
 
 
+// A whole page at a screen's full density is a very large picture: slow to draw and to encode,
+// and heavy to keep and to send. So a capture is drawn at twice its size at most, and at less
+// than that for a page so long that it would pass this many pixels.
+const MAX_DENSITY = 2
+const MAX_PIXELS = 20_000_000
+// The longest side WebP can hold. A picture past it is saved as JPEG.
+const MAX_WEBP_SIDE = 16383
+// Text stays crisp at this, at a fraction of what a PNG weighs.
+const QUALITY = 0.9
+
 export const captureDocumentWithSnapdom = async (
   ownerDocument: Document,
   ownerWindow: Window,
@@ -127,13 +137,17 @@ export const captureDocumentWithSnapdom = async (
   const root = ownerDocument.documentElement
   const width = Math.max(root.scrollWidth, ownerDocument.body?.scrollWidth ?? 0, ownerWindow.innerWidth)
   const height = Math.max(root.scrollHeight, ownerDocument.body?.scrollHeight ?? 0, ownerWindow.innerHeight)
+  const density = Math.min(ownerWindow.devicePixelRatio || 1, MAX_DENSITY, Math.sqrt(MAX_PIXELS / (width * height)))
+  const format = Math.max(width, height) * density <= MAX_WEBP_SIDE ? "webp" : "jpeg"
   const blocked = routeBlockedFetches(pageImageUrls(root, ownerWindow), { loadImage })
   const result = await Promise.resolve().then(() => snapdom(root, {
-    dpr: ownerWindow.devicePixelRatio,
+    dpr: density,
     clip: { x: 0, y: 0, width, height },
     exclude: "[data-mesurer-comments-layer], .mesurer-color-picker, .mesurer-screenshot-preview, [aria-label='Screenshot selection']",
     excludeMode: "remove",
-    format: "png",
+    format,
+    quality: QUALITY,
+    backgroundColor: "#ffffff",
     reconcile: true,
     placeholders: true,
     fallbackURL: FALLBACK_IMAGE_URL,
@@ -150,7 +164,8 @@ export const captureDocumentWithSnapdom = async (
   } catch {
     /* The export below still stands on its own. */
   }
-  const blob = await result.toBlob({ format: "png" })
+  // A browser that cannot write the format asked for gives a PNG, which is taken as it comes.
+  const blob = await result.toBlob({ format, quality: QUALITY })
   const live = blocked.kept.size ? liveDocument(String(await result.toRaw()), blocked.kept) : undefined
   const bitmap = await createImageBitmap(blob)
   const size = { width: bitmap.width, height: bitmap.height }
@@ -158,7 +173,7 @@ export const captureDocumentWithSnapdom = async (
   return {
     blob,
     ...size,
-    mimeType: "image/png",
+    mimeType: blob.type === "image/webp" || blob.type === "image/jpeg" ? blob.type : "image/png",
     origin: { x: 0, y: 0 },
     cssWidth: width,
     cssHeight: height,

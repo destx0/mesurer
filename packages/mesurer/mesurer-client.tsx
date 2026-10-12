@@ -712,6 +712,7 @@ export function MesurerClient({
         },
         now,
       });
+      const startedAt = ownerWindow.performance.now();
       const capture = await captureReviewSnapshot({
         ownerDocument,
         ownerWindow,
@@ -719,7 +720,13 @@ export function MesurerClient({
         captureVisibleTab,
         captureDom,
       });
+      const capturedAt = ownerWindow.performance.now();
       const ephemeral = await (createReviewViewer ?? createDefaultReviewViewer)(state, capture, ownerWindow);
+      // Where a save's time goes, and what it weighs. Shown at the console's verbose level.
+      console.debug(
+        `[Mesurer] Review: capture ${Math.round(capturedAt - startedAt)} ms, viewer ${Math.round(ownerWindow.performance.now() - capturedAt)} ms, ` +
+          `picture ${capture.width} × ${capture.height} ${capture.mimeType} ${Math.round(capture.blob.size / 1024)} KB, page ${Math.round(ephemeral.html.length / 1024)} KB`,
+      );
       const reviewId = ownerWindow.crypto.randomUUID?.() ?? (() => {
         const bytes = new Uint8Array(16);
         ownerWindow.crypto.getRandomValues(bytes);

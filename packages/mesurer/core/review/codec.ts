@@ -53,7 +53,7 @@ const isScreenshotAsset = (value: unknown) => {
   if (!isRecord(value)) return false
   return (
     typeof value.id === "string" &&
-    (value.mimeType === "image/png" || value.mimeType === "image/jpeg") &&
+    (value.mimeType === "image/png" || value.mimeType === "image/jpeg" || value.mimeType === "image/webp") &&
     isFiniteNumber(value.width) &&
     isFiniteNumber(value.height) &&
     (value.dataUrl === undefined || typeof value.dataUrl === "string") &&

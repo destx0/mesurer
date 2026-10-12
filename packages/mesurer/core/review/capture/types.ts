@@ -2,7 +2,7 @@ export type CapturedReviewImage = {
   blob: Blob
   width: number
   height: number
-  mimeType: "image/png" | "image/jpeg"
+  mimeType: "image/png" | "image/jpeg" | "image/webp"
   origin: { x: number; y: number }
   cssWidth: number
   cssHeight: number

@@ -29,7 +29,7 @@ export type ScrollSnapshot = Point
 
 export type ScreenshotAsset = {
   id: string
-  mimeType: "image/png" | "image/jpeg"
+  mimeType: "image/png" | "image/jpeg" | "image/webp"
   width: number
   height: number
   dataUrl?: string

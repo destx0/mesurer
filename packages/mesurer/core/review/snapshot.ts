@@ -21,7 +21,7 @@ export type ReviewSnapshotCapture = {
   blob: Blob
   width: number
   height: number
-  mimeType: "image/png" | "image/jpeg"
+  mimeType: "image/png" | "image/jpeg" | "image/webp"
   origin?: { x: number; y: number }
   cssWidth?: number
   cssHeight?: number
@@ -88,7 +88,7 @@ export const captureReviewSnapshot = async ({
     return {
       blob,
       ...size,
-      mimeType: blob.type === "image/jpeg" ? "image/jpeg" : "image/png",
+      mimeType: blob.type === "image/jpeg" || blob.type === "image/webp" ? blob.type : "image/png",
       ...(captured ? {
         origin: captured.origin,
         cssWidth: captured.cssWidth,
