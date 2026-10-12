@@ -9,7 +9,8 @@ if (!root) throw new Error("Root element not found");
 
 const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 // Demo route: UUID viewers resolve from browser-local storage until a review API exists.
-const reviewId = /^\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname)
+// Only on the dev server: the built site has no reviews to show yet.
+const reviewId = import.meta.env.DEV && /^\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(pathname)
   ? pathname.slice(1)
   : null;
 const ReviewPage = ({ id }: { id: string }) => {

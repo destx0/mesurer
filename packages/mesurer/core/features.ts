@@ -1,3 +1,4 @@
+/// <reference path="./build.ts" />
 export type MesurerFeatures = {
   screenshot?: boolean
   rulers?: boolean
@@ -25,4 +26,6 @@ export const resolveMesurerFeatures = (
 ): ResolvedMesurerFeatures => ({
   ...DEFAULT_MESURER_FEATURES,
   ...features,
+  // Not to be asked for in a build that leaves saving out: see core/build.ts.
+  review: Boolean(features?.review) && !globalThis.__MESURER_NO_REVIEW__,
 })

@@ -4,7 +4,7 @@ import MarketingPage from "./home";
 export default function MarketingRoute() {
   return (
     <>
-      <Mesurer initialState={{ minimized: true }} features={{ review: import.meta.env.DEV }} />
+      <Mesurer initialState={{ minimized: true }} />
       <MarketingPage />
     </>
   );
