@@ -1318,7 +1318,8 @@ test("Appearance setting switches the Mesurer theme", async ({ page }) => {
   await expect(page.locator(".mesurer-toolbar-chrome")).toHaveCSS("background-color", "rgb(50, 50, 50)");
   await expect.poll(() => page.locator("[data-mesurer-root]").evaluate((element) => getComputedStyle(element).getPropertyValue("--msr-accent").trim())).toBe("#0c8ce9");
   await expect(page.locator(".mesurer-toolbar-divider").first()).toHaveCSS("background-color", "rgb(74, 74, 74)");
-  await expect(page.locator("[data-mesurer-settings-panel]")).toHaveCSS("background-color", "rgb(58, 58, 58)");
+  // A menu is the toolbar's own colour in dark mode.
+  await expect(page.locator("[data-mesurer-settings-panel]")).toHaveCSS("background-color", "rgb(50, 50, 50)");
   const firstSwitch = page.getByRole("switch").first();
   if (await firstSwitch.getAttribute("aria-checked") === "true") await firstSwitch.click();
   await expect(page.locator('.mesurer-switch-track[data-checked="false"]').first()).toHaveCSS("background-color", "rgb(65, 65, 65)");
