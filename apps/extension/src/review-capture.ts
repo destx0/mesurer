@@ -1,1 +1,1 @@
-export { captureDocumentWithSnapdom, createEphemeralReviewUrl, showReviewLoading } from "mesurer/review-capture";
+export { captureDocumentWithSnapdom, createEphemeralReviewUrl, showReviewLoading } from "../../../packages/mesurer/review-capture";

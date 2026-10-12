@@ -70,8 +70,10 @@ export function MesurerUnstyled({
     return null;
   }
 
-  const restoredReviewState = reviewState && !globalThis.__MESURER_NO_REVIEW__
-    ? restoreReviewWorkspace(reviewState, resolvedPortalTarget?.ownerDocument ?? document)
+  // Not in a build that leaves reviews out: see core/build.ts.
+  const openedReview = globalThis.__MESURER_NO_REVIEW__ ? undefined : reviewState;
+  const restoredReviewState = openedReview
+    ? restoreReviewWorkspace(openedReview, resolvedPortalTarget?.ownerDocument ?? document)
     : undefined;
 
   return (
@@ -97,7 +99,7 @@ export function MesurerUnstyled({
       multiMeasureEnabled={multiMeasureEnabled}
       guideStyle={{ ...DEFAULT_GUIDE_STYLE, ...guideStyle }}
       rulerSettings={{ ...DEFAULT_RULER_SETTINGS, ...rulerSettings }}
-      textStyle={{ ...DEFAULT_TEXT_STYLE, ...reviewState?.review.workspace?.textStyle, ...textStyle }}
+      textStyle={{ ...DEFAULT_TEXT_STYLE, ...openedReview?.review.workspace?.textStyle, ...textStyle }}
       persistence={persistence}
       onPersistenceError={onPersistenceError}
       captureVisibleTab={captureVisibleTab}

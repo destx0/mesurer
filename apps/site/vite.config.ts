@@ -31,18 +31,18 @@ const localReviews = (): Plugin => {
   };
 };
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [tailwindcss(), react(), localReviews()],
   define: {
     __MESURER_SNAPDOM_CAPTURE__: "true",
     // The test pages run the extension's content script from source, with saving a review on.
     __MESURER_REVIEW__: "true",
+    // The built site has no saving of reviews: what only it needs is compiled out. The dev
+    // server keeps it, for the tests.
+    ...(command === "build" ? { "globalThis.__MESURER_NO_REVIEW__": "true" } : null),
   },
   resolve: {
     alias: {
-      "mesurer/extension-runtime": fileURLToPath(
-        new URL("../../packages/mesurer/extension-runtime.ts", import.meta.url),
-      ),
       mesurer: fileURLToPath(
         new URL("../../packages/mesurer/index.ts", import.meta.url),
       ),
@@ -54,4 +54,4 @@ export default defineConfig({
   server: {
     strictPort: true,
   },
-});
+}));

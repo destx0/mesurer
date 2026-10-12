@@ -15,27 +15,11 @@
       "require": "./dist/index.cjs"
     },
     "./styles.css": "./dist/styles.css",
-    "./review-capture": {
-      "types": "./dist/review-capture.d.ts",
-      "import": "./dist/review-capture.js",
-      "require": "./dist/review-capture.cjs"
-    },
-    "./extension-runtime": {
-      "types": "./dist/extension-runtime.d.ts",
-      "import": "./dist/extension-runtime.js",
-      "require": "./dist/extension-runtime.cjs"
-    },
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "dist/styles.css",
-    "dist/review-capture.js",
-    "dist/review-capture.cjs",
-    "dist/review-capture.d.ts",
-    "dist/extension-runtime.js",
-    "dist/extension-runtime.cjs",
-    "dist/extension-runtime.d.ts",
     "CHANGELOG.md",
     "README.md",
     "PRIVACY.md",

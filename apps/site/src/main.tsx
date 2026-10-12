@@ -2,7 +2,8 @@ import React, { lazy, Suspense, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import { App } from "./app";
-import { loadReviewViewer } from "mesurer";
+// From the source, not the package: nothing about reviews is published yet.
+import { loadReviewViewer } from "../../../packages/mesurer/core/review/viewer-storage";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found");

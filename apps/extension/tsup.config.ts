@@ -58,11 +58,12 @@ export default defineConfig([
     },
     define: { ...production, __MESURER_SNAPDOM_CAPTURE__: "false", ...review },
   },
-  {
+  // Loaded by the content script the first time a review is saved: not built where none is.
+  ...(withReview ? [{
     ...shared,
     entry: { "review-capture": "src/review-capture.ts" },
-    format: ["esm"],
+    format: ["esm" as const],
     noExternal: ["mesurer", "@zumer/snapdom"],
     define: production,
-  },
+  }] : []),
 ]);
