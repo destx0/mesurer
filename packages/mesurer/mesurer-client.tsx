@@ -644,7 +644,14 @@ export function MesurerClient({
       const pageId = ownerWindow.location.href;
       const versionId = `local-version-${now}`;
       const commentPins = overlayRef.current?.querySelectorAll<HTMLElement>("[data-mesurer-comment-pin]");
-      const reviewComments = collectReviewComments(comments, commentRuntimeSnapshot.rects, commentPins, ownerWindow);
+      // The comments that are on the page as it is saved, and no others: not the resolved ones
+      // the list is not showing, nor those left in a responsive preview. They are the ones with
+      // a pin on the page, in the same order, which is how each pin is matched to its comment.
+      const shownComments = comments.filter((comment) =>
+        !comment.target.preview &&
+        (comment.id === selectedCommentId || commentFilter === "all" || comment.status === commentFilter),
+      );
+      const reviewComments = collectReviewComments(shownComments, commentRuntimeSnapshot.rects, commentPins, ownerWindow);
       let reviewTextAnnotations = collectReviewTextAnnotations(textAnnotationsRef.current, overlayRef.current ?? undefined);
       const activeTextDraft = textDraftRef.current;
       const activeText = (textDraftInputRef.current ?? overlayRef.current?.querySelector<HTMLElement>("[data-mesurer-text-input]"))?.textContent?.trim();
@@ -708,7 +715,9 @@ export function MesurerClient({
           activeMeasurement,
           heldDistances,
           comments: reviewComments,
-          layoutGuides,
+          // Layout guides are a working aid, not part of what is said about the page: a saved
+          // review is kept without them.
+          layoutGuides: [],
           textStyle: settings.textStyle,
         },
         now,
@@ -757,7 +766,8 @@ export function MesurerClient({
     guideOrientation,
     guides,
     heldDistances,
-    layoutGuides,
+    commentFilter,
+    selectedCommentId,
     measurements,
     minimized,
     ownerDocument,
