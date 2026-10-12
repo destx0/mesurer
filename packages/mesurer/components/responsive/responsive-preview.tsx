@@ -47,6 +47,7 @@ export function ResponsivePreview({
   guideOrientation,
   onGuides,
   onWheel,
+  onPress,
   scale,
   order,
   onResize,
@@ -69,6 +70,8 @@ export function ResponsivePreview({
   onGuides: (guides: PreviewGuide[]) => void
   /** A wheel was turned over the page in this preview, where it is not heard from outside. */
   onWheel: (event: WheelEvent) => void
+  /** The page in this preview was pressed on, which is not heard from outside either. */
+  onPress: () => void
   scale: number
   /** Where it stands in the row. The row is reordered without moving a frame, which would reload it. */
   order: number
@@ -90,6 +93,8 @@ export function ResponsivePreview({
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const onWheelRef = useRef(onWheel)
   onWheelRef.current = onWheel
+  const onPressRef = useRef(onPress)
+  onPressRef.current = onPress
   // What the page reports about the visit is held back in the frame, so one visit is not counted
   // once for each preview. From the layout on, so the page is caught on its way in rather than
   // once it has loaded.
@@ -106,6 +111,7 @@ export function ResponsivePreview({
       if (!page || heard.has(page)) return
       heard.add(page)
       page.addEventListener("wheel", (event) => onWheelRef.current(event), { passive: false })
+      page.addEventListener("pointerdown", () => onPressRef.current(), true)
     }
     frame.addEventListener("load", listen)
     listen()

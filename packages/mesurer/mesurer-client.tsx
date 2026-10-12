@@ -748,6 +748,9 @@ export function MesurerClient({
   const [wantedPreview, setWantedPreview] = useState<{ width: number; height: number } | null>(null);
   // The comment to bring into view once the element it is on is found.
   const revealCommentRef = useRef<string | null>(null);
+  // A press on the page in a preview is in that page's frame, where the toolbar's menus do not
+  // hear it: they are closed from here, as a press anywhere else outside them closes them.
+  const closeToolbarMenus = useCallback(() => setOpenMenu(null), [setOpenMenu]);
   const toggleResponsive = useCallback(() => {
     // What is selected belongs to where it was selected: the page, or a preview that is closing.
     clearSelection();
@@ -1419,7 +1422,7 @@ export function MesurerClient({
       }}
       layoutGuides={layoutGuides}
       layoutGuidesVisible={layoutGuidesVisible}
-      responsive={responsiveOpen ? { onClose: toggleResponsive, guidesActive: toolMode === "guides", altPressed, guideOrientation, wanted: wantedPreview } : null}
+      responsive={responsiveOpen ? { onClose: toggleResponsive, guidesActive: toolMode === "guides", altPressed, guideOrientation, wanted: wantedPreview, onPreviewPress: closeToolbarMenus } : null}
       overlay={{
         enabled,
         pageLayers: !responsiveOpen,

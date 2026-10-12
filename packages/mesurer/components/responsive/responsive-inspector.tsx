@@ -52,6 +52,7 @@ export function ResponsiveInspector({
   altPressed,
   guideOrientation,
   wanted,
+  onPreviewPress,
   onClose,
 }: {
   /** A size one of the previews is to have: a comment left at it is being looked at. */
@@ -63,6 +64,8 @@ export function ResponsiveInspector({
   /** Alt is held, which measures from the previews' guides as it does from the page's. */
   altPressed: boolean
   guideOrientation: "horizontal" | "vertical"
+  /** The page in one of the previews was pressed on: a press there is a press outside any menu. */
+  onPreviewPress?: () => void
   onClose: () => void
 }) {
   const [previews, setPreviews] = useState(() => (lastPage === pageKey() ? lastPreviews : withoutGuides(lastPreviews)))
@@ -219,6 +222,7 @@ export function ResponsiveInspector({
               guideOrientation={guideOrientation}
               onGuides={(guides) => setGuides(preview.id, guides)}
               onWheel={(event) => passFrameWheelOn(event, rowRef.current)}
+              onPress={() => onPreviewPress?.()}
               scale={scale}
               order={previews.indexOf(preview)}
               onResize={(size) => resize(preview.id, size)}
