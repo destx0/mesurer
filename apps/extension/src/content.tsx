@@ -8,7 +8,7 @@ import {
   recoverHost,
   setHostInvalidatedHandler,
 } from "./host";
-import { BOOT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
 import { createExtensionPersistence } from "./storage";
 import { captureVisibleTabPng } from "./capture-visible-tab";
 
@@ -30,6 +30,7 @@ type ExtensionGlobal = typeof globalThis & {
   [STATE_KEY]?: ExtensionState;
   [BOOT_KEY]?: ExtensionBoot;
   [STYLES_KEY]?: string;
+  [PERSIST_DEFAULT_KEY]?: boolean;
 };
 
 const extensionGlobal = globalThis as ExtensionGlobal;
@@ -241,7 +242,8 @@ const mount = async () => {
         portalTarget={shadowRoot}
         persistence={state.persistence}
         persistSession
-        persistOnReload={new URLSearchParams(location.search).has("persist")}
+        // On by default, as in the package: "Use defaults" in Settings leaves Persist on.
+        persistOnReload={(extensionGlobal[PERSIST_DEFAULT_KEY] ?? true) || new URLSearchParams(location.search).has("persist")}
         captureVisibleTab={captureVisibleTabPng}
         extensionRecording={state.extensionRecording}
         extensionRecordingPlayer={recordingPlayer}

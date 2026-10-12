@@ -14,6 +14,8 @@ export const OFFSCREEN_RECORDING_STOP_MESSAGE = "mesurer:offscreen-recording-sto
 export const OFFSCREEN_RECORDING_ABORT_MESSAGE = "mesurer:offscreen-recording-abort";
 export const BOOT_KEY = "__MESURER_BOOT__";
 export const STYLES_KEY = "__MESURER_STYLES__";
+// Set to false by the test page, whose tests start from Persist being off. Nothing else sets it.
+export const PERSIST_DEFAULT_KEY = "__MESURER_PERSIST_DEFAULT__";
 
 export type ExtensionBoot = "toggle" | "restore";
 
