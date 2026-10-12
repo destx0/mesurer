@@ -107,3 +107,9 @@ background now reads the file and hands its text to the content script. And the 
 trims and exports a recording in its own page, so the in-page editor and the GIF, MP4 and WebM
 encoders are compiled out of the content script (`globalThis.__MESURER_EXTENSION__`, set for that
 build alone). The limit is lowered to 207.5 KiB, leaving about 0.4 KiB of headroom.
+
+Fixes after the responsive previews shipped (their comments, scrolling and menus, and Persist on
+by default) brought the content script to 207.5 KiB, the limit itself, so any further fix failed
+the check. The limit is raised to 210 KiB to leave about 2.5 KiB for fixes. It is not room for
+features: one that needs more gets its own entry here, and past 250 KiB the script is made
+lighter instead of the limit raised.

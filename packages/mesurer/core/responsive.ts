@@ -73,19 +73,13 @@ export const scrollElementIntoView = (element: Element) => {
     element.scrollIntoView({ block: "center", inline: "center" })
     return
   }
-  // Everything around the preview, and where each is scrolled to now.
+  // Everything around the preview, the page behind included, and where each is scrolled to now.
   const around: Array<[Element, number, number]> = []
   for (let node: Node | null = frame.parentNode; node; node = node.parentNode ?? (node as Partial<ShadowRoot>).host ?? null) {
     if (node.nodeType === 1) around.push([node as Element, (node as Element).scrollLeft, (node as Element).scrollTop])
   }
-  const outer = frame.ownerDocument.defaultView
-  const outerAt = outer ? { x: outer.scrollX, y: outer.scrollY } : null
   element.scrollIntoView({ block: "center", inline: "center" })
-  for (const [node, left, top] of around) {
-    if (node.scrollLeft !== left) node.scrollLeft = left
-    if (node.scrollTop !== top) node.scrollTop = top
-  }
-  if (outer && outerAt && (outer.scrollX !== outerAt.x || outer.scrollY !== outerAt.y)) outer.scrollTo(outerAt.x, outerAt.y)
+  for (const [node, left, top] of around) node.scrollTo(left, top)
 
   // The row alone is moved, and only sideways, when the preview is not wholly in it.
   const row = frame.closest(`[${RESPONSIVE_ROW_ATTRIBUTE}]`)
