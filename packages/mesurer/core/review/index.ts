@@ -26,6 +26,7 @@ export { createLocalReviewStateStorage } from "./storage"
 export type { ReviewStateStorage } from "./storage"
 export { createReviewViewer, showReviewLoading, type CreateReviewViewer } from "./viewer"
 export { loadReviewViewer, saveReviewViewer } from "./viewer-storage"
+export { createPlatformReviewPublisher, type PlatformReviewPublisherOptions, type ReviewPublication } from "./platform"
 export type { CapturedReviewImage } from "./capture"
 export {
   REVIEW_STATE_SCHEMA_VERSION,

@@ -1,6 +1,8 @@
 export { default as Mesurer } from "./mesurer";
 export type { MesurerProps } from "./mesurer";
 export { loadReviewViewer, saveReviewViewer } from "./core/review/viewer-storage";
+export { createPlatformReviewPublisher } from "./core/review/platform";
+export type { PlatformReviewPublisherOptions, ReviewPublication } from "./core/review/platform";
 export type { MesurerFeatures } from "./core/features";
 export type { Arrow, PenStroke, Point, TextAnnotation } from "./core/types";
 export {

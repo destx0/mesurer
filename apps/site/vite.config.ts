@@ -35,6 +35,8 @@ export default defineConfig({
   plugins: [tailwindcss(), react(), localReviews()],
   define: {
     __MESURER_SNAPDOM_CAPTURE__: "true",
+    // The test pages run the extension's content script from source, with saving a review on.
+    __MESURER_REVIEW__: "true",
   },
   resolve: {
     alias: {

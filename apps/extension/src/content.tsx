@@ -12,6 +12,8 @@ import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, REC
 import { createExtensionPersistence } from "./storage";
 import { captureVisibleTabPng } from "./capture-visible-tab";
 
+declare const __MESURER_REVIEW__: boolean;
+
 type ReviewCaptureModule = typeof import("./review-capture");
 
 const STATE_KEY = "__MESURER_EXTENSION_STATE__";
@@ -62,7 +64,7 @@ const createReviewViewer: ReviewCaptureModule["createEphemeralReviewUrl"] = asyn
 
 // The page Mesurer is on is any site, which cannot keep a review or show one: the background
 // hands it to where reviews are kept, and says where it opens.
-const publishReview = async (id: string, html: string) => {
+const publishReview = async ({ id, html }: { id: string; html: string }) => {
   const response = await chrome.runtime.sendMessage({ type: PUBLISH_REVIEW_MESSAGE, id, html });
   if (!response?.ok || typeof response.url !== "string") throw new Error("Review not saved");
   return response.url as string;
@@ -285,6 +287,7 @@ const mount = async () => {
         captureVisibleTab={captureVisibleTabPng}
         captureDom={typeof chrome !== "undefined" ? captureDocumentWithSnapdom : undefined}
         createReviewViewer={typeof chrome !== "undefined" ? createReviewViewer : undefined}
+        features={{ review: __MESURER_REVIEW__ }}
         publishReview={typeof chrome !== "undefined" ? publishReview : undefined}
         showReviewLoading={typeof chrome !== "undefined" ? showReviewLoading : undefined}
         extensionRecording={state.extensionRecording}

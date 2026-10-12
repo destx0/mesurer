@@ -82,6 +82,7 @@ import {
   showReviewLoading as showDefaultReviewLoading,
   type CapturedReviewImage,
   type CreateReviewViewer,
+  type ReviewPublication,
 } from "./core/review";
 
 const collectReviewComments = (
@@ -152,11 +153,11 @@ export type MesurerProps = {
   /** Builds a saved review's viewer page, for a host that loads that code on demand. */
   createReviewViewer?: CreateReviewViewer;
   /**
-   * Keeps a saved review's viewer page, and gives the address it opens at. Without it the page
-   * is kept in this site's own storage and opened on this site, which only a site that serves
-   * the viewer can do.
+   * Keeps a saved review, and gives the address it opens at. Without it the review's own page
+   * is kept in this site's storage and opened on this site, which only a site that serves the
+   * viewer can do.
    */
-  publishReview?: (id: string, html: string) => Promise<string>;
+  publishReview?: (review: ReviewPublication) => Promise<string>;
   /** Fills the tab a review will open in while it is made, for a host that loads that code on demand. */
   showReviewLoading?: (view: Window) => void;
   extensionRecording?: ExtensionRecordingSession;
@@ -736,7 +737,7 @@ export function MesurerClient({
       })();
       // Demo-only UUID route: the viewer is stored locally and is not cross-browser shareable.
       let reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
-      if (publishReview) reviewUrl = await publishReview(reviewId, ephemeral.html);
+      if (publishReview) reviewUrl = await publishReview({ id: reviewId, html: ephemeral.html, state: ephemeral.state, screenshot: capture.blob });
       else await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
       reviewWindow?.location.replace(reviewUrl);
       URL.revokeObjectURL(ephemeral.url);
@@ -2060,7 +2061,7 @@ export function MesurerClient({
                 onMinimize: minimizeMesurer,
                 onResetSettings: resetSettings,
                 onClearWorkspace: clearWorkspace,
-                onSaveReview: saveReview,
+                onSaveReview: features.review ? saveReview : undefined,
                 reviewSaveStatus,
               }}
             />

@@ -29,7 +29,14 @@ export default defineConfig([
     // Leaves out of the content script what only runs outside the extension, or in its other
     // pages (see packages/mesurer/core/build.ts), and the capture engine, which is loaded from
     // review-capture.js the first time a review is saved.
-    define: { ...production, "globalThis.__MESURER_EXTENSION__": "true", __MESURER_SNAPDOM_CAPTURE__: "false" },
+    define: {
+      ...production,
+      "globalThis.__MESURER_EXTENSION__": "true",
+      __MESURER_SNAPDOM_CAPTURE__: "false",
+      // Saving a review is built in only when asked for (`MESURER_REVIEW=1`), until reviews are
+      // kept on the platform.
+      __MESURER_REVIEW__: JSON.stringify(process.env.MESURER_REVIEW === "1"),
+    },
   },
   {
     ...shared,
