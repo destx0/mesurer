@@ -165,6 +165,22 @@
   color: var(--msr-content);
 }
 
+/* The `msr:shadow-floating` utility carries the light theme's shadow written out, so the dark
+   theme's own (with its fine light edge line) never reached what uses it: menus, cards, panels.
+   In dark mode they are given it here. */
+.mesurer-root .msr\:shadow-floating {
+  @variant dark {
+    --tw-shadow: var(--msr-shadow-floating);
+  }
+}
+
+/* In dark mode a menu is the toolbar's own colour, so the two read as one piece. */
+.mesurer-root .mesurer-menu-surface {
+  @variant dark {
+    background-color: var(--msr-surface) !important;
+  }
+}
+
 .mesurer-root .mesurer-section-divider {
   background-color: var(--msr-color-ink-200) !important;
 }
@@ -259,11 +275,12 @@
     --msr-control-thumb: #f4f4f5;
     --msr-slider-track: rgba(245, 245, 245, 0.24);
     --msr-shadow-toolbar:
-      drop-shadow(0 0 0.4px lch(100% 0 0 / 0.10))
+      drop-shadow(0 0 0.4px lch(100% 0 0 / 0.4))
       drop-shadow(0 3px 8px lch(0% 0 0 / 0.125))
       drop-shadow(0 2px 5px lch(0% 0 0 / 0.125))
       drop-shadow(0 1px 1px lch(0% 0 0 / 0.125));
-    --msr-shadow-floating: 0 0 0.4px lch(100% 0 0 / 0.10), 0 3px 8px lch(0% 0 0 / 0.125), 0 2px 5px lch(0% 0 0 / 0.125), 0 1px 1px lch(0% 0 0 / 0.125);
+    /* The fine line round a surface, light here as it is dark in light mode, and a little stronger to show on a dark page. */
+    --msr-shadow-floating: 0 0 0.4px lch(100% 0 0 / 0.4), 0 3px 8px lch(0% 0 0 / 0.125), 0 2px 5px lch(0% 0 0 / 0.125), 0 1px 1px lch(0% 0 0 / 0.125);
     --msr-shadow-select-menu: 0 0 0 0.4px lch(100% 0 0 / 0.14), 0 4px 12px lch(0% 0 0 / 0.22), 0 1px 3px lch(0% 0 0 / 0.18);
     --msr-comment-menu-surface: #323232;
     --msr-shadow-comment-menu: 0 0 0 0.5px lch(100% 0 0 / 0.16), 0 5px 14px lch(0% 0 0 / 0.26), 0 1px 3px lch(0% 0 0 / 0.18);
