@@ -6,7 +6,7 @@
   "permissions": ["activeTab", "scripting", "storage", "clipboardWrite", "tabCapture", "offscreen"],
   "web_accessible_resources": [
     {
-      "resources": ["recording-player.html", "recording-player.js"],
+      "resources": ["recording-player.html", "recording-player.js", "review-capture.js"],
       "matches": ["<all_urls>"]
     }
   ],

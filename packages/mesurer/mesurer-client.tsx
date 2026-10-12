@@ -50,7 +50,7 @@ import { attachPinnedGuideTarget } from "./core/distances";
 import { useAnnotationSelection } from "./hooks/use-annotation-selection";
 import { useAnnotationCallbacks } from "./hooks/use-annotation-callbacks";
 import type { ColorPickerFormat } from "./core/colors";
-import type { CommentThread, ToolMode } from "./core/types";
+import type { CommentThread, Rect, ToolMode } from "./core/types";
 import type { CommentFilter } from "./comments/types";
 
 export type ExtensionRecordingSession = {
@@ -74,6 +74,54 @@ import {
 import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
+import {
+  createReviewStateFromWorkspace,
+  createReviewViewer as createDefaultReviewViewer,
+  captureReviewSnapshot,
+  saveReviewViewer,
+  showReviewLoading as showDefaultReviewLoading,
+  type CapturedReviewImage,
+  type CreateReviewViewer,
+  type ReviewPublication,
+} from "./core/review";
+
+const collectReviewComments = (
+  comments: CommentThread[],
+  rects: ReadonlyMap<string, Rect>,
+  pins: NodeListOf<HTMLElement> | undefined,
+  ownerWindow: Window,
+) => comments.map((comment, index) => {
+  const targetRect = rects.get(comment.id) ?? comment.target.rect;
+  const pinRect = pins?.[index]?.getBoundingClientRect();
+  return {
+    ...comment,
+    target: {
+      ...comment.target,
+      rect: targetRect,
+      documentPoint: pinRect
+        ? { x: pinRect.left + pinRect.width / 2 + ownerWindow.scrollX, y: pinRect.top + pinRect.height / 2 + ownerWindow.scrollY }
+        : {
+          x: targetRect.left + targetRect.width * (comment.target.anchor?.x ?? 1) + ownerWindow.scrollX,
+          y: targetRect.top + targetRect.height * (comment.target.anchor?.y ?? 0) + ownerWindow.scrollY,
+        },
+    },
+  };
+});
+
+const collectReviewTextAnnotations = <T extends { id: string; text: string }>(
+  annotations: T[],
+  overlay: HTMLElement | undefined,
+) => {
+  const result = [...annotations];
+  for (const element of overlay?.querySelectorAll<HTMLElement>("[data-mesurer-text]") ?? []) {
+    const id = element.dataset.mesurerTextId;
+    const index = id ? result.findIndex((annotation) => annotation.id === id) : -1;
+    const textNode = element.querySelector<HTMLElement>("[data-mesurer-text-input]") ?? element;
+    if (index >= 0) result[index] = { ...result[index], text: textNode.textContent ?? result[index].text };
+  }
+  return result;
+};
+
 export type MesurerProps = {
   highlightColor?: string;
   guideColor?: string;
@@ -101,9 +149,21 @@ export type MesurerProps = {
   persistence?: MesurerPersistence;
   onPersistenceError?: (error: unknown) => void;
   captureVisibleTab?: () => Promise<Blob>;
+  captureDom?: ((ownerDocument: Document, ownerWindow: Window) => Promise<CapturedReviewImage>) | false;
+  /** Builds a saved review's viewer page, for a host that loads that code on demand. */
+  createReviewViewer?: CreateReviewViewer;
+  /**
+   * Keeps a saved review, and gives the address it opens at. Without it the review's own page
+   * is kept in this site's storage and opened on this site, which only a site that serves the
+   * viewer can do.
+   */
+  publishReview?: (review: ReviewPublication) => Promise<string>;
+  /** Fills the tab a review will open in while it is made, for a host that loads that code on demand. */
+  showReviewLoading?: (view: Window) => void;
   extensionRecording?: ExtensionRecordingSession;
   extensionRecordingPlayer?: string;
   features?: MesurerFeatures;
+  reviewState?: import("./core/review").ReviewState;
   initialState?: {
     enabled?: boolean;
     minimized?: boolean;
@@ -154,10 +214,15 @@ export function MesurerClient({
   persistence,
   onPersistenceError,
   captureVisibleTab,
+  captureDom,
+  createReviewViewer,
+  publishReview,
+  showReviewLoading,
   extensionRecording,
   extensionRecordingPlayer,
   features,
   initialState,
+  reviewState,
 }: Required<
   Omit<
     MesurerProps,
@@ -169,10 +234,15 @@ export function MesurerClient({
     | "rulerSettings"
     | "textStyle"
     | "captureVisibleTab"
+    | "captureDom"
+    | "createReviewViewer"
+    | "publishReview"
+    | "showReviewLoading"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "features"
     | "initialState"
+    | "reviewState"
   >
 > &
   Pick<
@@ -182,9 +252,14 @@ export function MesurerClient({
     | "persistence"
     | "onPersistenceError"
     | "captureVisibleTab"
+    | "captureDom"
+    | "createReviewViewer"
+    | "publishReview"
+    | "showReviewLoading"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "initialState"
+    | "reviewState"
   > & {
     guideStyle: GuideStyle;
     rulerSettings: RulerSettings;
@@ -215,7 +290,7 @@ export function MesurerClient({
   const applyingExternalPersistenceRef = useRef(false);
   const persistCommentsRef = useRef<(comments: CommentThread[]) => void>(() => {});
   const workspace = useMesurerWorkspaceState({
-    persistedState,
+    persistedState: reviewState ? null : persistedState,
     initialToolMode: persistedSettings.lastToolMode ?? "select",
     snapEnabledDefault: persistedSettings.snapEnabled ?? snapEnabledDefault,
     snapGuidesEnabledDefault:
@@ -229,7 +304,7 @@ export function MesurerClient({
     multiMeasureEnabledDefault:
       persistedSettings.multiMeasureEnabled ?? multiMeasureEnabledDefault,
     initialState,
-    initialComments: persistedState?.comments ?? initialState?.comments,
+    initialComments: reviewState ? initialState?.comments : persistedState?.comments ?? initialState?.comments,
     onCommentsChange: (value) => persistCommentsRef.current(value),
   });
   const [commentFilter, setCommentFilter] = useState<CommentFilter>("open");
@@ -538,6 +613,185 @@ export function MesurerClient({
   selectedPenStrokeIdsRef.current = selectedPenStrokeIds;
   textAnnotationsRef.current = textAnnotations;
   selectedTextIdsRef.current = selectedTextIds;
+  const savingReviewRef = useRef(false);
+  const [reviewSaveStatus, setReviewSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  useEffect(() => {
+    setReviewSaveStatus("idle");
+  }, [arrows, comments, guides, measurements, penStrokes, textAnnotations]);
+  // Closing or leaving the tab while a review is saved loses it: the browser asks first.
+  useEffect(() => {
+    if (reviewSaveStatus !== "saving") return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    ownerWindow.addEventListener("beforeunload", warn);
+    return () => ownerWindow.removeEventListener("beforeunload", warn);
+  }, [ownerWindow, reviewSaveStatus]);
+  const saveReview = useCallback(async () => {
+    // Nothing below is built into a build that does not save reviews.
+    if (globalThis.__MESURER_NO_REVIEW__) return;
+    if (savingReviewRef.current) return;
+    savingReviewRef.current = true;
+    setReviewSaveStatus("saving");
+    // The review's tab is opened now, while the press allows it, and says what it is waiting
+    // for. This page goes to the background behind it, where the capture carries on.
+    const reviewWindow = ownerWindow.open("", "_blank");
+    if (reviewWindow) {
+      reviewWindow.opener = null;
+      (showReviewLoading ?? showDefaultReviewLoading)(reviewWindow);
+    }
+    const now = Date.now();
+    try {
+      const pageId = ownerWindow.location.href;
+      const versionId = `local-version-${now}`;
+      const commentPins = overlayRef.current?.querySelectorAll<HTMLElement>("[data-mesurer-comment-pin]");
+      // The comments that are on the page as it is saved, and no others: not the resolved ones
+      // the list is not showing, nor those left in a responsive preview. They are the ones with
+      // a pin on the page, in the same order, which is how each pin is matched to its comment.
+      const shownComments = comments.filter((comment) =>
+        !comment.target.preview &&
+        (comment.id === selectedCommentId || commentFilter === "all" || comment.status === commentFilter),
+      );
+      const reviewComments = collectReviewComments(shownComments, commentRuntimeSnapshot.rects, commentPins, ownerWindow);
+      let reviewTextAnnotations = collectReviewTextAnnotations(textAnnotationsRef.current, overlayRef.current ?? undefined);
+      const activeTextDraft = textDraftRef.current;
+      const activeText = (textDraftInputRef.current ?? overlayRef.current?.querySelector<HTMLElement>("[data-mesurer-text-input]"))?.textContent?.trim();
+      if (activeTextDraft && activeText) {
+        const existing = activeTextDraft.id
+          ? reviewTextAnnotations.find((annotation) => annotation.id === activeTextDraft.id)
+          : undefined;
+        if (existing) {
+          const index = reviewTextAnnotations.indexOf(existing);
+          reviewTextAnnotations[index] = { ...existing, text: activeText };
+        }
+        else reviewTextAnnotations.push({ id: `local-text-${now}`, x: activeTextDraft.x, y: activeTextDraft.y, text: activeText });
+      }
+      const state = createReviewStateFromWorkspace({
+        project: {
+          id: "local-project",
+          name: ownerDocument.title || ownerWindow.location.hostname || "Local project",
+        },
+        page: {
+          id: pageId,
+          projectId: "local-project",
+          url: ownerWindow.location.href,
+          ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
+          versionIds: [],
+        },
+        version: {
+          id: versionId,
+          pageId,
+          number: 1,
+          createdAt: now,
+          snapshot: {
+            url: ownerWindow.location.href,
+            ...(ownerDocument.title ? { title: ownerDocument.title } : {}),
+            capturedAt: now,
+            viewport: {
+              width: ownerWindow.innerWidth,
+              height: ownerWindow.innerHeight,
+              devicePixelRatio: ownerWindow.devicePixelRatio,
+            },
+            scroll: { x: ownerWindow.scrollX, y: ownerWindow.scrollY },
+          },
+          domContext: { fingerprints: {} },
+        },
+        reviewId: `local-review-${now}`,
+        workspace: {
+          enabled,
+          minimized,
+          xrayVisible,
+          toolMode,
+          rulersVisible,
+          guideOrientation,
+          guides,
+          selectedGuideIds,
+          arrows,
+          selectedArrowIds,
+          selectedPenStrokeIds,
+          selectedTextIds,
+          penStrokes,
+          textAnnotations: reviewTextAnnotations,
+          measurements,
+          activeMeasurement,
+          heldDistances,
+          comments: reviewComments,
+          // Layout guides are a working aid, not part of what is said about the page: a saved
+          // review is kept without them.
+          layoutGuides: [],
+          textStyle: settings.textStyle,
+        },
+        now,
+      });
+      const startedAt = ownerWindow.performance.now();
+      const capture = await captureReviewSnapshot({
+        ownerDocument,
+        ownerWindow,
+        overlay: overlayRef.current,
+        captureVisibleTab,
+        captureDom,
+      });
+      const capturedAt = ownerWindow.performance.now();
+      const ephemeral = await (createReviewViewer ?? createDefaultReviewViewer)(state, capture, ownerWindow);
+      // Where a save's time goes, and what it weighs. Shown at the console's verbose level.
+      console.debug(
+        `[Mesurer] Review: capture ${Math.round(capturedAt - startedAt)} ms, viewer ${Math.round(ownerWindow.performance.now() - capturedAt)} ms, ` +
+          `picture ${capture.width} × ${capture.height} ${capture.mimeType} ${Math.round(capture.blob.size / 1024)} KB, page ${Math.round(ephemeral.html.length / 1024)} KB`,
+      );
+      const reviewId = ownerWindow.crypto.randomUUID?.() ?? (() => {
+        const bytes = new Uint8Array(16);
+        ownerWindow.crypto.getRandomValues(bytes);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        return [...bytes].map((byte, index) => `${byte.toString(16).padStart(2, "0")}${[3, 5, 7, 9].includes(index) ? "-" : ""}`).join("");
+      })();
+      // Demo-only UUID route: the viewer is stored locally and is not cross-browser shareable.
+      let reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
+      if (publishReview) reviewUrl = await publishReview({ id: reviewId, html: ephemeral.html, state: ephemeral.state, screenshot: capture.blob });
+      else await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
+      reviewWindow?.location.replace(reviewUrl);
+      URL.revokeObjectURL(ephemeral.url);
+      setReviewSaveStatus("saved");
+    } catch (error) {
+      reviewWindow?.close();
+      console.error("[Mesurer] Could not save review", error);
+      setReviewSaveStatus("error");
+    } finally {
+      savingReviewRef.current = false;
+    }
+  }, [
+    activeMeasurement,
+    arrows,
+    comments,
+    enabled,
+    guideOrientation,
+    guides,
+    heldDistances,
+    commentFilter,
+    selectedCommentId,
+    measurements,
+    minimized,
+    ownerDocument,
+    ownerWindow,
+    overlayRef,
+    penStrokes,
+    rulersVisible,
+    selectedArrowIds,
+    selectedGuideIds,
+    selectedPenStrokeIds,
+    selectedTextIds,
+    textAnnotations,
+    settings.textStyle,
+    toolMode,
+    xrayVisible,
+    captureVisibleTab,
+    captureDom,
+    createReviewViewer,
+    publishReview,
+    showReviewLoading,
+    commentRuntimeSnapshot.rects,
+  ]);
   const {
     recordSnapshot,
     createActionCommit,
@@ -818,6 +1072,7 @@ export function MesurerClient({
     screenshot,
     setEnabledWithHistory,
     setLayoutGuidesWithHistory,
+    setLayoutGuidesVisible,
     setOpenMenu,
     setSettingsOpen,
   ]);
@@ -1818,6 +2073,8 @@ export function MesurerClient({
                 onMinimize: minimizeMesurer,
                 onResetSettings: resetSettings,
                 onClearWorkspace: clearWorkspace,
+                onSaveReview: features.review ? saveReview : undefined,
+                reviewSaveStatus,
               }}
             />
           ),

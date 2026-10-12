@@ -1,0 +1,103 @@
+import { hideNodesForCapture } from "../screenshot"
+import { captureVisibleTabPng } from "../screenshot-capture"
+import type { CapturedReviewImage } from "./capture"
+
+declare const __MESURER_SNAPDOM_CAPTURE__: boolean | undefined
+
+type DomCapture = (
+  ownerDocument: Document,
+  ownerWindow: Window,
+) => Promise<CapturedReviewImage>
+
+export type ReviewSnapshotCaptureOptions = {
+  ownerDocument: Document
+  ownerWindow: Window
+  overlay: HTMLElement | null
+  captureVisibleTab?: () => Promise<Blob>
+  captureDom?: DomCapture | false
+}
+
+export type ReviewSnapshotCapture = {
+  blob: Blob
+  width: number
+  height: number
+  mimeType: "image/png" | "image/jpeg" | "image/webp"
+  origin?: { x: number; y: number }
+  cssWidth?: number
+  cssHeight?: number
+  scale?: number
+  live?: string
+}
+
+const getCaptureNodes = (overlay: HTMLElement | null) => [
+  overlay,
+  overlay?.querySelector<HTMLElement>("[data-mesurer-comments-layer]") ?? null,
+  overlay?.querySelector<HTMLElement>(".mesurer-color-picker") ?? null,
+  overlay?.querySelector<HTMLElement>(".mesurer-screenshot-preview") ?? null,
+  overlay?.querySelector<HTMLElement>("[aria-label='Screenshot selection']") ?? null,
+]
+
+// Waits for Mesurer's own layers, just hidden, to be painted away. The page is in the background
+// by now, behind the tab its review will open in, and a page there is given no frame: a short
+// wait stands in for one, so saving does not stop until the page is come back to.
+const waitForPaint = (ownerWindow: Window) =>
+  new Promise<void>((resolve) => {
+    ownerWindow.setTimeout(resolve, 120)
+    if (ownerWindow.document.visibilityState === "hidden") return
+    ownerWindow.requestAnimationFrame(() => ownerWindow.requestAnimationFrame(() => resolve()))
+  })
+
+const getImageSize = async (blob: Blob) => {
+  const bitmap = await createImageBitmap(blob)
+  const size = { width: bitmap.width, height: bitmap.height }
+  bitmap.close()
+  return size
+}
+
+export const captureReviewSnapshot = async ({
+  ownerDocument,
+  ownerWindow,
+  overlay,
+  captureVisibleTab,
+  captureDom,
+}: ReviewSnapshotCaptureOptions): Promise<ReviewSnapshotCapture> => {
+  const restore = hideNodesForCapture(getCaptureNodes(overlay))
+  try {
+    await waitForPaint(ownerWindow)
+    const capture = captureVisibleTab ?? (() => captureVisibleTabPng(ownerDocument, ownerWindow))
+    const domCapture = captureDom === false
+      ? undefined
+      : captureDom ?? (__MESURER_SNAPDOM_CAPTURE__
+      ? async (document: Document, window: Window) => {
+          const { captureDocumentWithSnapdom } = await import("./capture/snapdom")
+          return captureDocumentWithSnapdom(document, window)
+        }
+      : undefined)
+    let captured: CapturedReviewImage | null = null
+    if (domCapture) {
+      try {
+        captured = await domCapture(ownerDocument, ownerWindow)
+      } catch {
+        // Fall back to browser capture when DOM serialization cannot handle page content.
+      }
+    }
+    // A picture of the tab is of the tab in front, which is not this page while it is behind.
+    if (!captured && ownerDocument.visibilityState === "hidden") throw new Error("Page not in view")
+    const blob = captured?.blob ?? await capture()
+    const size = await getImageSize(blob)
+    return {
+      blob,
+      ...size,
+      mimeType: blob.type === "image/jpeg" || blob.type === "image/webp" ? blob.type : "image/png",
+      ...(captured ? {
+        origin: captured.origin,
+        cssWidth: captured.cssWidth,
+        cssHeight: captured.cssHeight,
+        scale: captured.scale,
+        ...(captured.live ? { live: captured.live } : {}),
+      } : { origin: { x: ownerWindow.scrollX, y: ownerWindow.scrollY }, scale: 1 }),
+    }
+  } finally {
+    restore()
+  }
+}

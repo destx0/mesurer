@@ -1,8 +1,14 @@
+/// <reference path="./build.ts" />
 export type MesurerFeatures = {
   screenshot?: boolean
   rulers?: boolean
   settings?: boolean
   responsive?: boolean
+  /**
+   * Saving a review. Off unless asked for: reviews are not kept anywhere yet but on the machine
+   * they are saved from, so the Save button is not shown to everyone.
+   */
+  review?: boolean
 }
 
 export type ResolvedMesurerFeatures = Required<MesurerFeatures>
@@ -12,6 +18,7 @@ export const DEFAULT_MESURER_FEATURES: ResolvedMesurerFeatures = {
   rulers: true,
   settings: true,
   responsive: true,
+  review: false,
 }
 
 export const resolveMesurerFeatures = (
@@ -19,4 +26,6 @@ export const resolveMesurerFeatures = (
 ): ResolvedMesurerFeatures => ({
   ...DEFAULT_MESURER_FEATURES,
   ...features,
+  // Not to be asked for in a build that leaves saving out: see core/build.ts.
+  review: Boolean(features?.review) && !globalThis.__MESURER_NO_REVIEW__,
 })

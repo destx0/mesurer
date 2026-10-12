@@ -426,11 +426,19 @@ test("scrolls the preview under the pointer while a tool has the pointer", async
   const inspect = page.getByRole("button", { name: "Inspect (I)" });
   if ((await inspect.getAttribute("aria-pressed")) !== "true") await inspect.click();
   const frame = page.frameLocator("iframe[data-mesurer-responsive-frame]").first();
+  // The preview starts on a blank page, which the real one replaces: made taller before then,
+  // it is the blank page that is, and the real one has nothing to scroll.
+  await expect
+    .poll(() => frame.locator("html").evaluate(() => location.href !== "about:blank" && document.readyState === "complete"))
+    .toBe(true);
   await frame.locator("body").evaluate((body) => { body.style.minHeight = "4000px"; });
   const box = (await frames(page).first().boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.wheel(0, 300);
-  await expect.poll(() => frame.locator("html").evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  // Turned again until it takes: a wheel turned before the tool has the pointer goes nowhere.
+  await expect(async () => {
+    await page.mouse.wheel(0, 300);
+    expect(await frame.locator("html").evaluate(() => window.scrollY)).toBeGreaterThan(100);
+  }).toPass();
   // The page behind stays where it is.
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   await expect(inspector).toBeVisible();

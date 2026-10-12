@@ -8,9 +8,13 @@ import {
   recoverHost,
   setHostInvalidatedHandler,
 } from "./host";
-import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, FETCH_IMAGE_MESSAGE, PUBLISH_REVIEW_MESSAGE, type ExtensionBoot } from "./messages";
 import { createExtensionPersistence } from "./storage";
 import { captureVisibleTabPng } from "./capture-visible-tab";
+
+declare const __MESURER_REVIEW__: boolean;
+
+type ReviewCaptureModule = typeof import("./review-capture");
 
 const STATE_KEY = "__MESURER_EXTENSION_STATE__";
 const OPEN_KEY = "mesurer:open";
@@ -34,6 +38,42 @@ type ExtensionGlobal = typeof globalThis & {
 };
 
 const extensionGlobal = globalThis as ExtensionGlobal;
+let reviewCaptureModule: Promise<ReviewCaptureModule> | null = null;
+
+// Images the page cannot read itself (another origin's, without CORS headers) come through the
+// background, which the host permissions let fetch them.
+const loadImageViaBackground = async (url: string) => {
+  const response = await chrome.runtime.sendMessage({ type: FETCH_IMAGE_MESSAGE, url });
+  return response?.ok && typeof response.dataUrl === "string" ? response.dataUrl : undefined;
+};
+
+// What only saving a review needs (the capture engine, the viewer's page) stays out of the
+// content script and loads the first time one is saved.
+const loadReviewCapture = () => {
+  if (!reviewCaptureModule) {
+    reviewCaptureModule = import(/* @vite-ignore */ chrome.runtime.getURL("review-capture.js"));
+  }
+  return reviewCaptureModule;
+};
+
+const captureDocumentWithSnapdom = async (ownerDocument: Document, ownerWindow: Window) =>
+  (await loadReviewCapture()).captureDocumentWithSnapdom(ownerDocument, ownerWindow, { loadImage: loadImageViaBackground });
+
+const createReviewViewer: ReviewCaptureModule["createEphemeralReviewUrl"] = async (...args) =>
+  (await loadReviewCapture()).createEphemeralReviewUrl(...args);
+
+// The page Mesurer is on is any site, which cannot keep a review or show one: the background
+// hands it to where reviews are kept, and says where it opens.
+const publishReview = async ({ id, html }: { id: string; html: string }) => {
+  const response = await chrome.runtime.sendMessage({ type: PUBLISH_REVIEW_MESSAGE, id, html });
+  if (!response?.ok || typeof response.url !== "string") throw new Error("Review not saved");
+  return response.url as string;
+};
+
+// The tab is open by now, and filled as soon as the code that fills it has loaded.
+const showReviewLoading = (view: Window) => {
+  void loadReviewCapture().then((capture) => capture.showReviewLoading(view));
+};
 
 function createExtensionRecording() {
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage) {
@@ -227,7 +267,7 @@ const mount = async () => {
         state.persistence = undefined;
       }
     }
-    if (!state.extensionRecording) {
+    if (typeof chrome !== "undefined" && !state.extensionRecording) {
       state.extensionRecording = createExtensionRecording();
     }
     const recordingPlayer = typeof chrome !== "undefined" && chrome.runtime?.getURL
@@ -245,6 +285,11 @@ const mount = async () => {
         // On by default, as in the package: "Use defaults" in Settings leaves Persist on.
         persistOnReload={(extensionGlobal[PERSIST_DEFAULT_KEY] ?? true) || new URLSearchParams(location.search).has("persist")}
         captureVisibleTab={captureVisibleTabPng}
+        features={{ review: __MESURER_REVIEW__ }}
+        // What saving a review needs, in a build that offers it.
+        {...(__MESURER_REVIEW__ && typeof chrome !== "undefined"
+          ? { captureDom: captureDocumentWithSnapdom, createReviewViewer, publishReview, showReviewLoading }
+          : null)}
         extensionRecording={state.extensionRecording}
         extensionRecordingPlayer={recordingPlayer}
       />,

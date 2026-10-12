@@ -22,8 +22,16 @@ const [baseManifestRaw, packageRaw] = await Promise.all([
 const baseManifest = JSON.parse(baseManifestRaw);
 const pkg = JSON.parse(packageRaw);
 
+// review-capture.js is only built, and only offered to pages, in a build that saves reviews.
+const withReview = process.env.MESURER_REVIEW === "1";
+const webAccessibleResources = baseManifest.web_accessible_resources.map((entry) => ({
+  ...entry,
+  resources: entry.resources.filter((resource) => withReview || resource !== "review-capture.js"),
+}));
+
 const manifest = {
   ...baseManifest,
+  web_accessible_resources: webAccessibleResources,
   name: "Mesurer - Inspect, annotate, and give feedback on any live interface",
   description:
     "Mesurer runs directly where you build. Share feedback with your agents and your team.",

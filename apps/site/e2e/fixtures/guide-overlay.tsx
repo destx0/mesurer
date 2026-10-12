@@ -4,6 +4,55 @@ import { captureCommentTarget, resolveCommentTarget } from "../../../../packages
 import { createActiveTabRegistry } from "../../../extension/src/active-tabs";
 import { PERSIST_DEFAULT_KEY, STYLES_KEY } from "../../../extension/src/messages";
 import { MESURER_STYLES } from "../../../../packages/mesurer/styles.generated";
+import {
+  captureDomFingerprint,
+  captureReviewSnapshot,
+  createEphemeralReviewUrl,
+  createLocalReviewStateStorage,
+  deserializeReviewState,
+  loadReviewViewer,
+  restoreReviewWorkspace,
+  saveReviewViewer,
+  resolveDomFingerprint,
+  serializeReviewState,
+} from "../../../../packages/mesurer/core/review";
+import { captureDocumentWithSnapdom } from "../../../../packages/mesurer/core/review/capture";
+import { createLocalStoragePersistence } from "../../../../packages/mesurer/core/persistence";
+import {
+  createIndexedDbSyncStore,
+  createMemorySyncStore,
+  createSyncEngine,
+} from "../../../../packages/mesurer/core/sync";
+import { SyncTransportError } from "../../../../packages/mesurer/core/sync/types";
+import { createSyncTestHarness } from "./sync-harness";
+
+export type SyncTestApi = {
+  createSyncTestHarness: typeof createSyncTestHarness;
+  createIndexedDbSyncStore: typeof createIndexedDbSyncStore;
+  createLocalStoragePersistence: typeof createLocalStoragePersistence;
+  createMemorySyncStore: typeof createMemorySyncStore;
+  createSyncEngine: typeof createSyncEngine;
+  SyncTransportError: typeof SyncTransportError;
+};
+
+export type CommentTargetTestApi = {
+  captureCommentTarget: typeof captureCommentTarget;
+  resolveCommentTarget: typeof resolveCommentTarget;
+};
+
+export type ReviewStateTestApi = {
+  captureDocumentWithSnapdom: typeof captureDocumentWithSnapdom;
+  captureDomFingerprint: typeof captureDomFingerprint;
+  captureReviewSnapshot: typeof captureReviewSnapshot;
+  createEphemeralReviewUrl: typeof createEphemeralReviewUrl;
+  createLocalReviewStateStorage: typeof createLocalReviewStateStorage;
+  deserializeReviewState: typeof deserializeReviewState;
+  loadReviewViewer: typeof loadReviewViewer;
+  resolveDomFingerprint: typeof resolveDomFingerprint;
+  restoreReviewWorkspace: typeof restoreReviewWorkspace;
+  saveReviewViewer: typeof saveReviewViewer;
+  serializeReviewState: typeof serializeReviewState;
+};
 
 export type ActiveTabTestApi = {
   createActiveTabRegistry: typeof createActiveTabRegistry;
@@ -14,6 +63,27 @@ const stealPagePrompt = new URLSearchParams(location.search).has("prompt");
 Object.assign(window, {
   __mesurerCommentTargetTest: { captureCommentTarget, resolveCommentTarget },
   __mesurerActiveTabTest: { createActiveTabRegistry },
+  __mesurerReviewStateTest: {
+    captureDocumentWithSnapdom,
+    captureDomFingerprint,
+    captureReviewSnapshot,
+    createEphemeralReviewUrl,
+    createLocalReviewStateStorage,
+    deserializeReviewState,
+    loadReviewViewer,
+    resolveDomFingerprint,
+    restoreReviewWorkspace,
+    saveReviewViewer,
+    serializeReviewState,
+  },
+  __mesurerSyncTest: {
+    createSyncTestHarness,
+    createIndexedDbSyncStore,
+    createLocalStoragePersistence,
+    createMemorySyncStore,
+    createSyncEngine,
+    SyncTransportError,
+  },
 });
 
 function ShadowCommentTarget() {

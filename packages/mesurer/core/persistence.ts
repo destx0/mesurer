@@ -13,6 +13,14 @@ import type { ColorPickerFormat } from "./colors"
 import type { ToolbarPlacement } from "./toolbar-dock"
 import { normalizeTextStyle, type TextStyleSettings } from "./text-style"
 import { normalizeLayoutGuides, type LayoutGuide } from "./layout-guides"
+import {
+  compareRevisions,
+  createNextRevision,
+  createWriterId,
+  isPersistenceRevision,
+  latestRevision,
+  type PersistenceRevision,
+} from "./persistence-revision"
 
 export type { TextFont, TextStyleSettings } from "./text-style"
 
@@ -196,6 +204,7 @@ export const mergeWorkspace = (
 export type MesurerPersistenceSnapshot = {
   settings: MesurerStoredSettings
   workspace: MesurerStoredWorkspace | PagedWorkspaceStore | null
+  revision?: PersistenceRevision
 }
 
 export type PersistenceChangeSource = {
@@ -220,6 +229,7 @@ export type MesurerPersistence = {
 
 type StoredRecord = {
   version: number
+  revision?: PersistenceRevision
   settings?: MesurerStoredSettings
   workspace?: MesurerStoredWorkspace | PagedWorkspaceStore | null
   enabled?: boolean
@@ -607,6 +617,7 @@ export const normalizePersistenceSnapshot = (
     workspace: isPagedWorkspaceStore(record.workspace)
       ? normalizePagedWorkspaceStore(record.workspace)
       : normalizeStoredWorkspace(record.workspace),
+    ...(isPersistenceRevision(record.revision) ? { revision: record.revision } : {}),
   }
 }
 
@@ -656,6 +667,8 @@ export const createLocalStoragePersistence = (
   legacyKey?: string,
 ): MesurerPersistence => {
   let errorHandler: ((error: unknown) => void) | undefined
+  const writerId = createWriterId()
+  let lastRevision: PersistenceRevision | undefined
   const readRecord = (key: string): MesurerPersistenceSnapshot | null => {
     try {
       const raw = ownerWindow.localStorage.getItem(key)
@@ -672,10 +685,24 @@ export const createLocalStoragePersistence = (
     const settingsRecord = readRecord(settingsKey)
     const workspaceRecord = readRecord(workspaceKey)
     if (!settingsRecord && !workspaceRecord && !legacy) return null
+    const revision = latestRevision(
+      settingsRecord?.revision,
+      workspaceRecord?.revision,
+      legacy?.revision,
+    )
     return {
       settings: settingsRecord?.settings ?? legacy?.settings ?? {},
       workspace: workspaceRecord?.workspace ?? legacy?.workspace ?? null,
+      ...(revision ? { revision } : {}),
     }
+  }
+
+  const nextRevision = () => {
+    const current = read()?.revision
+    const previous = compareRevisions(current, lastRevision) > 0 ? current : lastRevision
+    const revision = createNextRevision(previous, writerId)
+    lastRevision = revision
+    return revision
   }
 
   const writeRecord = (key: string, snapshot: MesurerPersistenceSnapshot) => {
@@ -691,35 +718,43 @@ export const createLocalStoragePersistence = (
   }
 
   return {
-    load: read,
+    load: () => {
+      const snapshot = read()
+      lastRevision = snapshot?.revision
+      return snapshot
+    },
     saveSettings: (settings) => {
+      const revision = nextRevision()
       if (settingsKey === workspaceKey) {
-        writeRecord(workspaceKey, { settings, workspace: read()?.workspace ?? null })
+        writeRecord(workspaceKey, { settings, workspace: read()?.workspace ?? null, revision })
         return
       }
-      writeRecord(settingsKey, { settings, workspace: null })
+      writeRecord(settingsKey, { settings, workspace: null, revision })
     },
     saveWorkspace: (workspace) => {
+      const revision = nextRevision()
       if (settingsKey === workspaceKey) {
-        writeRecord(workspaceKey, { settings: read()?.settings ?? {}, workspace })
+        writeRecord(workspaceKey, { settings: read()?.settings ?? {}, workspace, revision })
         return
       }
-      writeRecord(workspaceKey, { settings: {}, workspace })
+      writeRecord(workspaceKey, { settings: {}, workspace, revision })
     },
     clearWorkspace: () => {
+      const revision = nextRevision()
       if (settingsKey === workspaceKey) {
         const current = read()
-        if (current) writeRecord(workspaceKey, { settings: current.settings, workspace: null })
+        if (current) writeRecord(workspaceKey, { settings: current.settings, workspace: null, revision })
         return
       }
-      writeRecord(workspaceKey, { settings: {}, workspace: null })
+      writeRecord(workspaceKey, { settings: {}, workspace: null, revision })
     },
     clearSettings: () => {
+      const revision = nextRevision()
       if (settingsKey === workspaceKey) {
-        writeRecord(workspaceKey, { settings: {}, workspace: read()?.workspace ?? null })
+        writeRecord(workspaceKey, { settings: {}, workspace: read()?.workspace ?? null, revision })
         return
       }
-      writeRecord(settingsKey, { settings: {}, workspace: null })
+      writeRecord(settingsKey, { settings: {}, workspace: null, revision })
     },
     setErrorHandler: (handler) => {
       errorHandler = handler
@@ -727,7 +762,10 @@ export const createLocalStoragePersistence = (
     subscribe: (listener) => {
       const handleStorage = (event: StorageEvent) => {
         if (event.key !== settingsKey && event.key !== workspaceKey && event.key !== legacyKey) return
-        listener(read(), {
+        const next = read()
+        if (compareRevisions(next?.revision, lastRevision) <= 0) return
+        lastRevision = next?.revision
+        listener(next, {
           settings: event.key === settingsKey || event.key === legacyKey || settingsKey === workspaceKey,
           workspace: event.key === workspaceKey || event.key === legacyKey || settingsKey === workspaceKey,
         })

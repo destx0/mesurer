@@ -1,7 +1,70 @@
-import { CAPTURE_VISIBLE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SAVE_WORKSPACE_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { CAPTURE_VISIBLE_MESSAGE, FETCH_IMAGE_MESSAGE, PUBLISH_REVIEW_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
 import { createActiveTabRegistry } from "./active-tabs";
 
+// Whether this build saves reviews: see tsup.config.ts.
+declare const __MESURER_REVIEW__: boolean;
+
 const ACTIVE_TABS_KEY = "mesurer:active-tabs";
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+
+// A review's screenshot is drawn from the page, and a page cannot read the images it shows from
+// other origins unless they allow it. The extension's host permissions can, so it reads them here.
+// Private networks are not read on a page's behalf: an address there is reachable from the
+// browser but not from the internet, and the page could not read it itself. Loopback stays
+// readable, so a site running on this machine still gets its images.
+const isPrivateHost = (hostname: string) => {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return a === 10 || a === 0 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+  }
+  if (host.includes(":")) return /^(fc|fd)/.test(host) || /^fe[89ab]/.test(host);
+  return host.endsWith(".local") || host.endsWith(".internal");
+};
+
+const readableImageUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && !isPrivateHost(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+// Sent without cookies: an image behind the user's login is not read with it, only one anyone
+// could load. The final address is checked too, since a redirect may lead onto a private network.
+const fetchImageDataUrl = async (url: string) => {
+  if (!readableImageUrl(url)) throw new Error("Not readable");
+  const response = await fetch(url, { credentials: "omit" });
+  if (!readableImageUrl(response.url)) throw new Error("Redirected to a private network");
+  const type = response.headers.get("content-type") ?? "";
+  if (!response.ok || !type.startsWith("image/")) throw new Error("Not an image");
+  if (Number(response.headers.get("content-length")) > MAX_IMAGE_BYTES) throw new Error("Image too large");
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error("Image too large");
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+  }
+  return `data:${type.split(";")[0]};base64,${btoa(binary)}`;
+};
+
+// LOCAL TESTING ONLY. A saved review is kept by the site's dev server on this machine and opened
+// there, since the page Mesurer is on (any site) neither keeps reviews nor serves the viewer.
+// To be replaced by the review API before this ships.
+const LOCAL_REVIEW_HOST = "http://localhost:5173";
+
+const publishReviewLocally = async (id: string, html: string) => {
+  const response = await fetch(`${LOCAL_REVIEW_HOST}/__reviews/${id}`, {
+    method: "PUT",
+    headers: { "content-type": "text/html" },
+    body: html,
+    credentials: "omit",
+  });
+  if (!response.ok) throw new Error("Review not saved");
+  return `${LOCAL_REVIEW_HOST}/${id}`;
+};
 const restoreTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 const isInjectableUrl = (url: string | undefined) => {
@@ -201,15 +264,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message?.type === SAVE_WORKSPACE_MESSAGE && typeof message.key === "string") {
-    const write =
-      message.workspace == null
-        ? chrome.storage.local.remove(message.key)
-        : chrome.storage.local.set({ [message.key]: message.workspace });
-    void write.catch((error) => {
-      console.error("Mesurer failed to save workspace", error);
-    });
-    return false;
+  if (__MESURER_REVIEW__ && message?.type === FETCH_IMAGE_MESSAGE) {
+    if (sender.tab?.id === undefined || typeof message.url !== "string" || !/^https?:\/\//i.test(message.url)) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void fetchImageDataUrl(message.url).then(
+      (dataUrl) => sendResponse({ ok: true, dataUrl }),
+      () => sendResponse({ ok: false }),
+    );
+    return true;
+  }
+
+  if (__MESURER_REVIEW__ && message?.type === PUBLISH_REVIEW_MESSAGE) {
+    if (sender.tab?.id === undefined || typeof message.html !== "string" || !/^[0-9a-f-]{36}$/i.test(String(message.id))) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void publishReviewLocally(message.id, message.html).then(
+      (url) => sendResponse({ ok: true, url }),
+      () => sendResponse({ ok: false }),
+    );
+    return true;
   }
 
   if (message?.type !== CAPTURE_VISIBLE_MESSAGE) return false;

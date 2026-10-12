@@ -1,6 +1,7 @@
 export const CAPTURE_VISIBLE_MESSAGE = "mesurer:capture-visible";
 export const SESSION_MESSAGE = "mesurer:session";
-export const SAVE_WORKSPACE_MESSAGE = "mesurer:save-workspace";
+export const FETCH_IMAGE_MESSAGE = "mesurer:fetch-image";
+export const PUBLISH_REVIEW_MESSAGE = "mesurer:publish-review";
 export const RECORDING_START_MESSAGE = "mesurer:recording-start";
 export const RECORDING_PREPARE_MESSAGE = "mesurer:recording-prepare";
 export const RECORDING_PREPARED_MESSAGE = "mesurer:recording-prepared";
@@ -22,10 +23,4 @@ export type ExtensionBoot = "toggle" | "restore";
 export type SessionMessage = {
   type: typeof SESSION_MESSAGE;
   open: boolean;
-};
-
-export type SaveWorkspaceMessage = {
-  type: typeof SAVE_WORKSPACE_MESSAGE;
-  key: string;
-  workspace: unknown;
 };

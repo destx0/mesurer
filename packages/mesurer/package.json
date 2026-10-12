@@ -66,5 +66,8 @@
   "keywords": [
     "measurement",
     "alignment"
-  ]
+  ],
+  "dependencies": {
+    "@zumer/snapdom": "^3.0.0"
+  }
 }
