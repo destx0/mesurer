@@ -1,4 +1,4 @@
-import { CAPTURE_VISIBLE_MESSAGE, FETCH_IMAGE_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
+import { CAPTURE_VISIBLE_MESSAGE, FETCH_IMAGE_MESSAGE, PUBLISH_REVIEW_MESSAGE, OFFSCREEN_RECORDING_ABORT_MESSAGE, OFFSCREEN_RECORDING_PREPARE_MESSAGE, OFFSCREEN_RECORDING_START_MESSAGE, OFFSCREEN_RECORDING_STOP_MESSAGE, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, type ExtensionBoot } from "./messages";
 import { createActiveTabRegistry } from "./active-tabs";
 
 const ACTIVE_TABS_KEY = "mesurer:active-tabs";
@@ -45,6 +45,22 @@ const fetchImageDataUrl = async (url: string) => {
     binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
   }
   return `data:${type.split(";")[0]};base64,${btoa(binary)}`;
+};
+
+// LOCAL TESTING ONLY. A saved review is kept by the site's dev server on this machine and opened
+// there, since the page Mesurer is on (any site) neither keeps reviews nor serves the viewer.
+// To be replaced by the review API before this ships.
+const LOCAL_REVIEW_HOST = "http://localhost:5173";
+
+const publishReviewLocally = async (id: string, html: string) => {
+  const response = await fetch(`${LOCAL_REVIEW_HOST}/__reviews/${id}`, {
+    method: "PUT",
+    headers: { "content-type": "text/html" },
+    body: html,
+    credentials: "omit",
+  });
+  if (!response.ok) throw new Error("Review not saved");
+  return `${LOCAL_REVIEW_HOST}/${id}`;
 };
 const restoreTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
@@ -252,6 +268,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     void fetchImageDataUrl(message.url).then(
       (dataUrl) => sendResponse({ ok: true, dataUrl }),
+      () => sendResponse({ ok: false }),
+    );
+    return true;
+  }
+
+  if (message?.type === PUBLISH_REVIEW_MESSAGE) {
+    if (sender.tab?.id === undefined || typeof message.html !== "string" || !/^[0-9a-f-]{36}$/i.test(String(message.id))) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void publishReviewLocally(message.id, message.html).then(
+      (url) => sendResponse({ ok: true, url }),
       () => sendResponse({ ok: false }),
     );
     return true;

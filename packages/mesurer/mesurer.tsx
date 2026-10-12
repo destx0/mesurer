@@ -48,6 +48,8 @@ export function MesurerUnstyled({
   captureVisibleTab,
   captureDom,
   createReviewViewer,
+  publishReview,
+  showReviewLoading,
   extensionRecording,
   extensionRecordingPlayer,
   features,
@@ -101,6 +103,8 @@ export function MesurerUnstyled({
       captureVisibleTab={captureVisibleTab}
       captureDom={captureDom}
       createReviewViewer={createReviewViewer}
+      publishReview={publishReview}
+      showReviewLoading={showReviewLoading}
       extensionRecording={extensionRecording}
       extensionRecordingPlayer={extensionRecordingPlayer}
       features={resolveMesurerFeatures(features)}

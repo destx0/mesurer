@@ -8,7 +8,7 @@ import {
   recoverHost,
   setHostInvalidatedHandler,
 } from "./host";
-import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, FETCH_IMAGE_MESSAGE, type ExtensionBoot } from "./messages";
+import { BOOT_KEY, PERSIST_DEFAULT_KEY, STYLES_KEY, RECORDING_ABORT_MESSAGE, RECORDING_PREPARED_MESSAGE, RECORDING_PREPARE_MESSAGE, RECORDING_READY_MESSAGE, RECORDING_STARTED_MESSAGE, RECORDING_START_MESSAGE, RECORDING_STOP_MESSAGE, SESSION_MESSAGE, FETCH_IMAGE_MESSAGE, PUBLISH_REVIEW_MESSAGE, type ExtensionBoot } from "./messages";
 import { createExtensionPersistence } from "./storage";
 import { captureVisibleTabPng } from "./capture-visible-tab";
 
@@ -59,6 +59,19 @@ const captureDocumentWithSnapdom = async (ownerDocument: Document, ownerWindow: 
 
 const createReviewViewer: ReviewCaptureModule["createEphemeralReviewUrl"] = async (...args) =>
   (await loadReviewCapture()).createEphemeralReviewUrl(...args);
+
+// The page Mesurer is on is any site, which cannot keep a review or show one: the background
+// hands it to where reviews are kept, and says where it opens.
+const publishReview = async (id: string, html: string) => {
+  const response = await chrome.runtime.sendMessage({ type: PUBLISH_REVIEW_MESSAGE, id, html });
+  if (!response?.ok || typeof response.url !== "string") throw new Error("Review not saved");
+  return response.url as string;
+};
+
+// The tab is open by now, and filled as soon as the code that fills it has loaded.
+const showReviewLoading = (view: Window) => {
+  void loadReviewCapture().then((capture) => capture.showReviewLoading(view));
+};
 
 function createExtensionRecording() {
   if (typeof chrome === "undefined" || !chrome.runtime?.onMessage) {
@@ -272,6 +285,8 @@ const mount = async () => {
         captureVisibleTab={captureVisibleTabPng}
         captureDom={typeof chrome !== "undefined" ? captureDocumentWithSnapdom : undefined}
         createReviewViewer={typeof chrome !== "undefined" ? createReviewViewer : undefined}
+        publishReview={typeof chrome !== "undefined" ? publishReview : undefined}
+        showReviewLoading={typeof chrome !== "undefined" ? showReviewLoading : undefined}
         extensionRecording={state.extensionRecording}
         extensionRecordingPlayer={recordingPlayer}
       />,

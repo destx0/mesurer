@@ -1,7 +1,4 @@
-import {
-  hideNodesForCapture,
-  waitForNextPaint,
-} from "../screenshot"
+import { hideNodesForCapture } from "../screenshot"
 import { captureVisibleTabPng } from "../screenshot-capture"
 import type { CapturedReviewImage } from "./capture"
 
@@ -40,6 +37,16 @@ const getCaptureNodes = (overlay: HTMLElement | null) => [
   overlay?.querySelector<HTMLElement>("[aria-label='Screenshot selection']") ?? null,
 ]
 
+// Waits for Mesurer's own layers, just hidden, to be painted away. The page is in the background
+// by now, behind the tab its review will open in, and a page there is given no frame: a short
+// wait stands in for one, so saving does not stop until the page is come back to.
+const waitForPaint = (ownerWindow: Window) =>
+  new Promise<void>((resolve) => {
+    ownerWindow.setTimeout(resolve, 120)
+    if (ownerWindow.document.visibilityState === "hidden") return
+    ownerWindow.requestAnimationFrame(() => ownerWindow.requestAnimationFrame(() => resolve()))
+  })
+
 const getImageSize = async (blob: Blob) => {
   const bitmap = await createImageBitmap(blob)
   const size = { width: bitmap.width, height: bitmap.height }
@@ -56,7 +63,7 @@ export const captureReviewSnapshot = async ({
 }: ReviewSnapshotCaptureOptions): Promise<ReviewSnapshotCapture> => {
   const restore = hideNodesForCapture(getCaptureNodes(overlay))
   try {
-    await waitForNextPaint(ownerWindow)
+    await waitForPaint(ownerWindow)
     const capture = captureVisibleTab ?? (() => captureVisibleTabPng(ownerDocument, ownerWindow))
     const domCapture = captureDom === false
       ? undefined
@@ -74,6 +81,8 @@ export const captureReviewSnapshot = async ({
         // Fall back to browser capture when DOM serialization cannot handle page content.
       }
     }
+    // A picture of the tab is of the tab in front, which is not this page while it is behind.
+    if (!captured && ownerDocument.visibilityState === "hidden") throw new Error("Page not in view")
     const blob = captured?.blob ?? await capture()
     const size = await getImageSize(blob)
     return {

@@ -3,3 +3,4 @@
 export { captureDocumentWithSnapdom } from "./core/review/capture/snapdom"
 export type { DomCaptureOptions } from "./core/review/capture/snapdom"
 export { createEphemeralReviewUrl } from "./core/review/ephemeral-url"
+export { showReviewLoading } from "./core/review/loading-page"

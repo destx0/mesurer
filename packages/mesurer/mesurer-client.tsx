@@ -79,6 +79,7 @@ import {
   createReviewViewer as createDefaultReviewViewer,
   captureReviewSnapshot,
   saveReviewViewer,
+  showReviewLoading as showDefaultReviewLoading,
   type CapturedReviewImage,
   type CreateReviewViewer,
 } from "./core/review";
@@ -150,6 +151,14 @@ export type MesurerProps = {
   captureDom?: ((ownerDocument: Document, ownerWindow: Window) => Promise<CapturedReviewImage>) | false;
   /** Builds a saved review's viewer page, for a host that loads that code on demand. */
   createReviewViewer?: CreateReviewViewer;
+  /**
+   * Keeps a saved review's viewer page, and gives the address it opens at. Without it the page
+   * is kept in this site's own storage and opened on this site, which only a site that serves
+   * the viewer can do.
+   */
+  publishReview?: (id: string, html: string) => Promise<string>;
+  /** Fills the tab a review will open in while it is made, for a host that loads that code on demand. */
+  showReviewLoading?: (view: Window) => void;
   extensionRecording?: ExtensionRecordingSession;
   extensionRecordingPlayer?: string;
   features?: MesurerFeatures;
@@ -206,6 +215,8 @@ export function MesurerClient({
   captureVisibleTab,
   captureDom,
   createReviewViewer,
+  publishReview,
+  showReviewLoading,
   extensionRecording,
   extensionRecordingPlayer,
   features,
@@ -224,6 +235,8 @@ export function MesurerClient({
     | "captureVisibleTab"
     | "captureDom"
     | "createReviewViewer"
+    | "publishReview"
+    | "showReviewLoading"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "features"
@@ -240,6 +253,8 @@ export function MesurerClient({
     | "captureVisibleTab"
     | "captureDom"
     | "createReviewViewer"
+    | "publishReview"
+    | "showReviewLoading"
     | "extensionRecording"
     | "extensionRecordingPlayer"
     | "initialState"
@@ -602,12 +617,27 @@ export function MesurerClient({
   useEffect(() => {
     setReviewSaveStatus("idle");
   }, [arrows, comments, guides, measurements, penStrokes, textAnnotations]);
+  // Closing or leaving the tab while a review is saved loses it: the browser asks first.
+  useEffect(() => {
+    if (reviewSaveStatus !== "saving") return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    ownerWindow.addEventListener("beforeunload", warn);
+    return () => ownerWindow.removeEventListener("beforeunload", warn);
+  }, [ownerWindow, reviewSaveStatus]);
   const saveReview = useCallback(async () => {
     if (savingReviewRef.current) return;
     savingReviewRef.current = true;
     setReviewSaveStatus("saving");
+    // The review's tab is opened now, while the press allows it, and says what it is waiting
+    // for. This page goes to the background behind it, where the capture carries on.
     const reviewWindow = ownerWindow.open("", "_blank");
-    if (reviewWindow) reviewWindow.opener = null;
+    if (reviewWindow) {
+      reviewWindow.opener = null;
+      (showReviewLoading ?? showDefaultReviewLoading)(reviewWindow);
+    }
     const now = Date.now();
     try {
       const pageId = ownerWindow.location.href;
@@ -698,8 +728,9 @@ export function MesurerClient({
         return [...bytes].map((byte, index) => `${byte.toString(16).padStart(2, "0")}${[3, 5, 7, 9].includes(index) ? "-" : ""}`).join("");
       })();
       // Demo-only UUID route: the viewer is stored locally and is not cross-browser shareable.
-      await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
-      const reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
+      let reviewUrl = new URL(`/${reviewId}`, ownerWindow.location.href).href;
+      if (publishReview) reviewUrl = await publishReview(reviewId, ephemeral.html);
+      else await saveReviewViewer(ownerWindow, reviewId, ephemeral.html);
       reviewWindow?.location.replace(reviewUrl);
       URL.revokeObjectURL(ephemeral.url);
       setReviewSaveStatus("saved");
@@ -737,6 +768,8 @@ export function MesurerClient({
     captureVisibleTab,
     captureDom,
     createReviewViewer,
+    publishReview,
+    showReviewLoading,
     commentRuntimeSnapshot.rects,
   ]);
   const {

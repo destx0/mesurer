@@ -1,6 +1,7 @@
 export const CAPTURE_VISIBLE_MESSAGE = "mesurer:capture-visible";
 export const SESSION_MESSAGE = "mesurer:session";
 export const FETCH_IMAGE_MESSAGE = "mesurer:fetch-image";
+export const PUBLISH_REVIEW_MESSAGE = "mesurer:publish-review";
 export const RECORDING_START_MESSAGE = "mesurer:recording-start";
 export const RECORDING_PREPARE_MESSAGE = "mesurer:recording-prepare";
 export const RECORDING_PREPARED_MESSAGE = "mesurer:recording-prepared";

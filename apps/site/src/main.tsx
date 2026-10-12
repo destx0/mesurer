@@ -16,6 +16,9 @@ const ReviewPage = ({ id }: { id: string }) => {
   const [html, setHtml] = useState<string | null | undefined>();
   useEffect(() => {
     void loadReviewViewer(window, id)
+      // Not in this browser's storage: one the extension saved is kept by the dev server.
+      // Only there: a built site would answer with its own page.
+      .then((value) => value ?? (import.meta.env.DEV ? fetch(`/__reviews/${id}`).then((response) => (response.ok ? response.text() : undefined)) : undefined))
       .then((value) => setHtml(value ?? null))
       .catch(() => setHtml(null));
   }, [id]);
