@@ -79,6 +79,11 @@ export type ToolbarLayoutGuides = {
   visible: boolean;
 };
 
+export type ToolbarResponsive = {
+  open: boolean;
+  onToggle: () => void;
+};
+
 export type ToolbarProps = {
   eventTarget: Window;
   initialPosition: ToolbarPlacement;
@@ -95,7 +100,6 @@ export type ToolbarProps = {
   screenRecording: ToolbarScreenRecording;
   motion: {
     element: Element | null;
-    ownerWindow: Window;
     playable: boolean;
     observedProperties: string[];
     observedTargets: ObservedMotionTarget[];
@@ -103,6 +107,7 @@ export type ToolbarProps = {
   };
   comments: ToolbarComments;
   layoutGuides: ToolbarLayoutGuides;
+  responsive: ToolbarResponsive;
   settings: ToolbarSettings;
   features: ResolvedMesurerFeatures;
   openMenu: OpenMenu;

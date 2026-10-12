@@ -1,7 +1,7 @@
 # Extension content-script size budget
 
 `scripts/report-size.mjs` measures the built `content.js` with gzip level 9 and
-fails the extension build above **217.5 KiB**. Site-only Motion/React fixtures are
+fails the extension build above **207.5 KiB**. Site-only Motion/React fixtures are
 not part of this bundle.
 
 Measured baselines for `feat/inspect-motion`:
@@ -29,6 +29,8 @@ Measured baselines for `feat/inspect-motion`:
 | Toolbar polish: auto-hide while in use, saved placement on resize, and resumed swings (before: 216.0 KiB, after: 216.4 KiB) | 216.4 KiB | 217 KiB |
 | Toolbar corners: corner zones, the lit drop zone, and settling on the nearest spot (before: 216.4 KiB, after: 216.9 KiB) | 216.9 KiB | 217 KiB |
 | Comment commands: resolve-all shortcut, shared resolve icon and copy/resolve success feedback | 217.1 KiB | 217.5 KiB |
+| Responsive tool: the page at several sizes side by side in resizable, reorderable frames the tools work in, named devices, and the page's own breakpoints (before: 217.1 KiB, after: 221.1 KiB) | 221.1 KiB | 221.5 KiB |
+| Content script trim: the stylesheet read from the shipped mesurer.css instead of a second copy in the script, and the in-page recording editor and encoders left out (before: 225.2 KiB, after: 207.1 KiB) | 207.1 KiB | 207.5 KiB |
 
 The additional approximately 2.0 KiB implements the review's correctness and
 resource-safety fixes. The final stylesheet and iframe hardening adds
@@ -91,3 +93,17 @@ The corner zones, the drop zone that lights up and settling on the nearest spot 
 The comment commands measure 217.1 KiB after consolidating the feedback hook,
 action handlers, and resolve icon. The last documented baseline is 216.9 KiB;
 the new limit is 217.5 KiB, leaving about 0.4 KiB of headroom for this feature.
+
+The Responsive tool is a new tool in the Inspect group and measures 221.1 KiB: about 4.0 KiB
+for its row of preview frames, their controls, reordering and zoom, the list of named devices,
+the stylesheet reader that finds the page's breakpoints, making those frames known to the other
+tools, and its toolbar button, shortcut and icon. The new limit is 221.5 KiB, leaving about
+0.4 KiB of headroom.
+
+Commenting inside the responsive previews, their guides and wheel handling had taken the content
+script to 225.2 KiB, over the 221.5 KiB limit. Two trims bring it to 207.1 KiB instead of raising
+the limit. The stylesheet was shipped twice, as mesurer.css and built into the script: the
+background now reads the file and hands its text to the content script. And the extension always
+trims and exports a recording in its own page, so the in-page editor and the GIF, MP4 and WebM
+encoders are compiled out of the content script (`globalThis.__MESURER_EXTENSION__`, set for that
+build alone). The limit is lowered to 207.5 KiB, leaving about 0.4 KiB of headroom.

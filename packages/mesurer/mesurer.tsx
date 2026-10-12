@@ -10,17 +10,21 @@ import {
 } from "./core/persistence";
 import { DEFAULT_TEXT_STYLE } from "./core/text-style";
 import { resolveMesurerFeatures } from "./core/features";
+import { isResponsivePreview } from "./core/responsive";
+import { holdPreviewSideEffects } from "./core/preview-guard";
 
 export type { MesurerProps } from "./mesurer-client";
 
-export default function Mesurer({
+// Mesurer without its stylesheet, for a host that brings it another way: the extension ships it
+// as a file, and would otherwise carry it a second time inside its script.
+export function MesurerUnstyled({
   highlightColor = "oklch(0.62 0.18 255)",
   guideColor = "oklch(0.63 0.26 29.23)",
   arrowColor = "oklch(0.63 0.26 29.23)",
   guideHighlightEnabled = true,
   hoverHighlightEnabled = true,
   layoutDetailsEnabled = true,
-  persistOnReload = false,
+  persistOnReload = true,
   persistSession = false,
   shortcutsEnabled = true,
   theme = "system",
@@ -48,12 +52,16 @@ export default function Mesurer({
   const resolvedPortalTarget =
     portalTarget ?? (typeof document !== "undefined" ? document.body : undefined);
 
-  if (typeof document !== "undefined" && resolvedPortalTarget) {
-    ensureMesurerStyles(MESURER_STYLES, resolvedPortalTarget);
-  }
-
   const hydrated = useHydrated();
   if (!hydrated) return null;
+  // A page loaded in the responsive preview is there to be looked at: Mesurer stays out of it,
+  // or it would open a preview of its own.
+  if (isResponsivePreview(window)) {
+    // What it reports about the visit is held from here as well, which is as early as this page
+    // can do it itself.
+    holdPreviewSideEffects(window);
+    return null;
+  }
 
   return (
     <MesurerClient
@@ -89,4 +97,11 @@ export default function Mesurer({
       portalTarget={resolvedPortalTarget ?? document.body}
     />
   );
+}
+
+export default function Mesurer(props: MesurerProps) {
+  if (typeof document !== "undefined") {
+    ensureMesurerStyles(MESURER_STYLES, props.portalTarget ?? document.body);
+  }
+  return <MesurerUnstyled {...props} />;
 }

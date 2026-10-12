@@ -1,12 +1,13 @@
 import { useLayoutEffect, useRef } from "react"
-import { getAccessibleDocuments } from "../core/document-tree"
+import { getAccessibleDocuments, getOwnFrameDocuments, onOwnFramesChange } from "../core/document-tree"
 import { syncXrayStyles } from "../runtime/xray-styles"
 
-export const useXray = (ownerDocument: Document, visible: boolean) => {
+// While the responsive previews are open, X-ray shows in them only: the page behind is left as it is.
+export const useXray = (ownerDocument: Document, visible: boolean, previewsOnly = false) => {
   const appliedDocumentsRef = useRef<Document[]>([])
   useLayoutEffect(() => {
     const sync = () => {
-      const documents = getAccessibleDocuments(ownerDocument)
+      const documents = previewsOnly ? getOwnFrameDocuments(ownerDocument) : getAccessibleDocuments(ownerDocument)
       for (const document of appliedDocumentsRef.current) {
         if (!documents.includes(document)) syncXrayStyles(document, false)
       }
@@ -16,6 +17,7 @@ export const useXray = (ownerDocument: Document, visible: boolean) => {
 
     sync()
     ownerDocument.addEventListener("load", sync, true)
+    const offOwnFrames = onOwnFramesChange(sync)
     const observer = typeof MutationObserver === "undefined" || !ownerDocument.body
       ? null
       : new MutationObserver(sync)
@@ -23,9 +25,10 @@ export const useXray = (ownerDocument: Document, visible: boolean) => {
 
     return () => {
       ownerDocument.removeEventListener("load", sync, true)
+      offOwnFrames()
       observer?.disconnect()
       for (const document of appliedDocumentsRef.current) syncXrayStyles(document, false)
       appliedDocumentsRef.current = []
     }
-  }, [ownerDocument, visible])
+  }, [ownerDocument, visible, previewsOnly])
 }

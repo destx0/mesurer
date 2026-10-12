@@ -1,5 +1,5 @@
 const shortcuts = [
-  { keys: "M", description: "Toggle Mesurer on/off" },
+  { keys: "M", description: "Toggle Comments mode" },
   { keys: "I", description: "Toggle Inspect mode" },
   { keys: "S", description: "Toggle Select mode for annotations" },
   { keys: "A", description: "Toggle Typography mode" },
@@ -9,6 +9,7 @@ const shortcuts = [
   { keys: "C", description: "Drag a screenshot region (Chrome extension)" },
   { keys: "V", description: "Drag a region to record a video (Chrome extension)" },
   { keys: "L", description: "Toggle layout guides" },
+  { keys: "B", description: "Preview the page at other screen sizes" },
   { keys: "G", description: "Toggle Guides mode" },
   { keys: "X", description: "Toggle X-ray mode" },
   { keys: "R", description: "Toggle pixel rulers" },

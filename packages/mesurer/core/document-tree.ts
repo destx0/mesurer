@@ -18,8 +18,10 @@ export const getAccessibleFrameDocument = (element: Element): Document | null =>
   }
 }
 
+// In its document, and that document still in a window: one in a frame that was removed stays
+// in its document, which is no longer shown anywhere.
 export const isConnectedElement = (element: Element | null | undefined): element is Element =>
-  Boolean(element?.isConnected)
+  Boolean(element?.isConnected && element.ownerDocument.defaultView)
 
 export const getViewportRect = (element: Element): Rect => {
   const rect = element.getBoundingClientRect()
@@ -33,6 +35,49 @@ const observedShadowRoots = new WeakSet<ShadowRoot>()
 let documentTreeVersion = 0
 
 export const getDocumentTreeVersion = () => documentTreeVersion
+
+// Frames Mesurer itself shows the page in (the responsive previews). They are part of Mesurer's
+// own tree, which may sit outside the page's body where the walks below never go, so they are
+// made known here. `onOwnFramesChange` tells when one comes, goes or loads a page.
+const ownFrames = new Set<HTMLIFrameElement>()
+const ownFrameListeners = new Set<() => void>()
+
+export const onOwnFramesChange = (listener: () => void) => {
+  ownFrameListeners.add(listener)
+  return () => {
+    ownFrameListeners.delete(listener)
+  }
+}
+
+export const trackOwnFrame = (frame: HTMLIFrameElement) => {
+  const changed = () => {
+    documentTreeVersion += 1
+    for (const listener of ownFrameListeners) listener()
+  }
+  ownFrames.add(frame)
+  frame.addEventListener("load", changed)
+  changed()
+  return () => {
+    ownFrames.delete(frame)
+    frame.removeEventListener("load", changed)
+    changed()
+  }
+}
+
+// How much smaller than it is one of Mesurer's own frames is drawn, for an element in it. What
+// is measured on screen there, divided by this, is the size the page has in that frame. It is 1
+// for an element anywhere else.
+export const ownFrameScale = (element: Element | null | undefined) => {
+  const frame = element?.ownerDocument?.defaultView?.frameElement as HTMLIFrameElement | null | undefined
+  if (!frame || !ownFrames.has(frame) || !frame.offsetWidth) return 1
+  return frame.getBoundingClientRect().width / frame.offsetWidth || 1
+}
+
+const ownFrameDocuments = (ownerDocument: Document) =>
+  [...ownFrames].flatMap((frame) => {
+    const childDocument = frame.ownerDocument === ownerDocument ? getAccessibleFrameDocument(frame) : null
+    return childDocument ? [childDocument] : []
+  })
 
 const observeShadowRoot = (ownerDocument: Document, shadowRoot: ShadowRoot) => {
   if (observedShadowRoots.has(shadowRoot)) return
@@ -116,14 +161,22 @@ export const getAccessibleDocumentElements = (ownerDocument: Document = document
   const cached = accessibleElementCache.get(ownerDocument)
   if (cached?.version === version) return cached.elements
 
-  const elements = [...getBodyElementsCached(ownerDocument)]
+  // Mesurer's own frames stand over the whole page. While there are some, the page behind them
+  // is not offered: only what is in them is.
+  const ownDocuments = ownFrameDocuments(ownerDocument)
+  const elements = ownDocuments.length > 0 ? [] : [...getBodyElementsCached(ownerDocument)]
   for (const element of elements) {
     const childDocument = getAccessibleFrameDocument(element)
     if (childDocument) elements.push(...getAccessibleDocumentElements(childDocument))
   }
+  for (const childDocument of ownDocuments) elements.push(...getAccessibleDocumentElements(childDocument))
   accessibleElementCache.set(ownerDocument, { version, elements })
   return elements
 }
+
+// Every document inside Mesurer's own frames (the responsive previews), and the frames within those.
+export const getOwnFrameDocuments = (ownerDocument: Document): Document[] =>
+  ownFrameDocuments(ownerDocument).flatMap((childDocument) => getAccessibleDocuments(childDocument))
 
 export const getAccessibleDocuments = (ownerDocument: Document = document): Document[] => {
   const documents = [ownerDocument]
@@ -132,6 +185,9 @@ export const getAccessibleDocuments = (ownerDocument: Document = document): Docu
     if (childDocument && !documents.includes(childDocument)) {
       documents.push(...getAccessibleDocuments(childDocument))
     }
+  }
+  for (const childDocument of ownFrameDocuments(ownerDocument)) {
+    if (!documents.includes(childDocument)) documents.push(...getAccessibleDocuments(childDocument))
   }
   return documents
 }

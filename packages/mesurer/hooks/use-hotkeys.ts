@@ -102,6 +102,8 @@ type HotkeyOptions = {
   onToggleSettings: () => void
   onToggleLayoutGuides: () => void
   onCloseLayoutGuidesMenu: () => void
+  onToggleResponsive: () => void
+  isResponsiveOpen: () => boolean
   isSettingsOpen: () => boolean
   isLayoutGuidesOpen: () => boolean
   onCloseColorPicker: () => void
@@ -215,6 +217,12 @@ export const useHotkeys = (options: HotkeyOptions) => {
           current.closeComment()
           return
         }
+        // After what may be open over the previews, which goes first.
+        if (current.isResponsiveOpen()) {
+          lastEscapeAtRef.current = now
+          current.onToggleResponsive()
+          return
+        }
         if (!current.isToolbarIdle()) {
           if (current.hasTransientInteraction()) {
             current.clearTransientState()
@@ -310,10 +318,6 @@ export const useHotkeys = (options: HotkeyOptions) => {
         return
       }
 
-      if (event.key.toLowerCase() === "m") {
-        current.setEnabled((prev) => !prev)
-      }
-
       const key = event.key.toLowerCase()
       const toolGroupShortcut = getMesurerToolGroupShortcut(event)
       if (event.key === "Alt") {
@@ -365,11 +369,32 @@ export const useHotkeys = (options: HotkeyOptions) => {
         return
       }
 
+      if (key === "m") {
+        // From either tool group: Comments sits beside them, not in one.
+        event.preventDefault()
+        current.onInteract()
+        current.setEnabled(true)
+        current.clearTransientState()
+        current.onCloseColorPicker()
+        current.onCloseScreenshot()
+        current.setToolMode((prev) => (prev === "comments" ? "none" : "comments"))
+        return
+      }
+
       if (key === "l") {
         event.preventDefault()
         current.onInteract()
         current.setEnabled(true)
         current.onToggleLayoutGuides()
+        return
+      }
+
+      if (key === "b") {
+        // From either tool group, like the other toggles: its button is only in one of them.
+        if (!current.features.responsive) return
+        event.preventDefault()
+        current.onInteract()
+        current.onToggleResponsive()
         return
       }
 

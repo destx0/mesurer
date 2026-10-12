@@ -4,10 +4,13 @@ import { RulersOverlay } from "./rulers-overlay";
 import { LayoutGuidesOverlay } from "./layout-guides-overlay";
 import { RegionDimMask, ScreenshotSelectOverlay } from "./screenshot-select-overlay";
 import { Toolbar } from "./toolbar";
+import { ResponsiveInspector } from "./responsive";
 import { MesurerOverlay } from "../render/mesurer-overlay";
 import type { LayoutGuide } from "../core/layout-guides";
 import type { ScreenshotRect } from "../core/screenshot";
 import { usePageListener } from "../hooks/use-page-listener";
+
+const NO_LAYOUT_GUIDES: LayoutGuide[] = [];
 
 type MesurerPortalProps = {
   portalTarget: HTMLElement | ShadowRoot;
@@ -35,6 +38,7 @@ type MesurerPortalProps = {
   enabled: boolean;
   layoutGuides: LayoutGuide[];
   layoutGuidesVisible?: boolean;
+  responsive?: Omit<ComponentPropsWithoutRef<typeof ResponsiveInspector>, "layoutGuides"> | null;
 };
 
 export function MesurerPortal({
@@ -51,6 +55,7 @@ export function MesurerPortal({
   enabled,
   layoutGuides,
   layoutGuidesVisible = false,
+  responsive = null,
 }: MesurerPortalProps) {
   const ownerWindow = portalTarget.ownerDocument.defaultView;
   // Keeps a press on the tool switch inside Mesurer. Base UI dismisses floating surfaces from
@@ -82,7 +87,7 @@ export function MesurerPortal({
       data-theme={theme}
       tabIndex={-1}
     >
-      <LayoutGuidesOverlay enabled={enabled && layoutGuidesVisible} guides={layoutGuides} />
+      <LayoutGuidesOverlay enabled={enabled && layoutGuidesVisible && !responsive} guides={layoutGuides} />
       {rulers.visible ? (
         <RulersOverlay
           ownerWindow={rulers.ownerWindow}
@@ -96,6 +101,10 @@ export function MesurerPortal({
           guides={rulers.guides}
           selectedGuideIds={rulers.selectedGuideIds}
         />
+      ) : null}
+      {/* Under the overlay, which draws on the previews as it does on the page. */}
+      {responsive ? (
+        <ResponsiveInspector {...responsive} layoutGuides={enabled && layoutGuidesVisible ? layoutGuides : NO_LAYOUT_GUIDES} />
       ) : null}
       <MesurerOverlay {...overlay} />
       <ScreenshotSelectOverlay ref={screenshotOverlayRef} {...screenshot} />

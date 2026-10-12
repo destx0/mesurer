@@ -52,13 +52,13 @@ function App() {
 | `guideHighlightEnabled` | Highlights guides when they are hovered or selected. Default `true`.          |
 | `hoverHighlightEnabled` | Disables hover highlight and deselects on click when `false`.                 |
 | `layoutDetailsEnabled`  | Shows gap and padding under selected dimensions. Default `true`.              |
-| `persistOnReload`       | Persists workspace state across reloads when `true`.                          |
+| `persistOnReload`       | Persists workspace state across reloads; defaults to `true`.                  |
 | `shortcutsEnabled`      | Enables global keyboard shortcuts when `true`. Default `true`.                |
 | `persistKey`            | Optional workspace storage key; default workspaces are isolated per browser tab. |
 | `portalTarget`          | Optional element or shadow root used as the overlay portal mount target.      |
 | `persistence`           | Optional storage adapter for custom or extension-backed persistence.           |
 | `captureVisibleTab`      | Optional function supplying a PNG of the visible tab for Screenshot capture.  |
-| `features`               | Enable or disable `screenshot`, `rulers`, and `settings`; each defaults to `true`. |
+| `features`               | Enable or disable `screenshot`, `rulers`, `settings`, and `responsive`; each defaults to `true`. |
 | `onPersistenceError`    | Called when persistence is unavailable or a storage write fails.              |
 | `colorPickerFormats`     | Color formats displayed in the picker popover, in display order.             |
 | `colorPickerClickFormat` | Format copied to the clipboard when a color is picked.                       |
@@ -78,7 +78,7 @@ Props are the defaults. Saved settings override them; **Use defaults** restores 
 
 | Shortcut               | Action                                                |
 | ---------------------- | ----------------------------------------------------- |
-| `M`                    | Toggle Mesurer on/off.                                |
+| `M`                    | Toggle Comments mode.                                 |
 | `I`                    | Toggle Inspect mode.                                  |
 | `S`                    | Toggle Select mode for annotations.                   |
 | `A`                    | Toggle Typography mode.                               |
@@ -93,6 +93,7 @@ Props are the defaults. Saved settings override them; **Use defaults** restores 
 | `G`                    | Toggle Guides mode.                                   |
 | `X`                    | Toggle X-ray mode.                                    |
 | `R`                    | Toggle pixel rulers along the top and left edges.     |
+| `B`                    | Preview the page at other screen sizes.               |
 | `H`                    | Set guide orientation to horizontal.                  |
 | `V`                    | Set guide orientation to vertical.                    |
 | `Alt`                  | Temporarily enable option/guide measurement overlays. |
@@ -120,6 +121,7 @@ Props are the defaults. Saved settings override them; **Use defaults** restores 
 - **Rulers** - Drag guides from pixel rulers along the top and left edges
 - **Typography** - Inspect typography styles and pin text details
 - **X-ray mode** - Reveal element structure without changing the page
+- **Responsive** - Preview the page at several screen sizes side by side, from named devices or its own breakpoints
 - **Sample color** - Sample rendered colors and copy values in your chosen format
 - **Screenshot** - Drag a region of the visible tab and copy or download it. In a React integration without the extension, the browser may show a tab-sharing prompt.
 - **Video recording** - Drag a region of the visible tab, record up to 60 seconds, trim the result, and export it as WebM, GIF, or MP4 when supported. The Chrome extension records the active tab without a second sharing prompt.
