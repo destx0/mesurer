@@ -59,6 +59,43 @@ export const isResponsivePreview = (ownerWindow: Window) => {
   }
 }
 
+// Marks the row the previews stand in, which is what scrolls to bring one of them into view.
+export const RESPONSIVE_ROW_ATTRIBUTE = "data-mesurer-responsive-row"
+
+// Brings an element into view. One in a preview is scrolled to inside that preview's page, and
+// the row is slid along to the preview: nothing else is moved. Left to the browser, everything
+// around the preview is scrolled as well (the page behind, Mesurer's own layers), which pulls
+// the previews and their controls out of place.
+export const scrollElementIntoView = (element: Element) => {
+  const view = element.ownerDocument.defaultView
+  const frame = view && isResponsivePreview(view) ? view.frameElement : null
+  if (!frame) {
+    element.scrollIntoView({ block: "center", inline: "center" })
+    return
+  }
+  // Everything around the preview, and where each is scrolled to now.
+  const around: Array<[Element, number, number]> = []
+  for (let node: Node | null = frame.parentNode; node; node = node.parentNode ?? (node as Partial<ShadowRoot>).host ?? null) {
+    if (node.nodeType === 1) around.push([node as Element, (node as Element).scrollLeft, (node as Element).scrollTop])
+  }
+  const outer = frame.ownerDocument.defaultView
+  const outerAt = outer ? { x: outer.scrollX, y: outer.scrollY } : null
+  element.scrollIntoView({ block: "center", inline: "center" })
+  for (const [node, left, top] of around) {
+    if (node.scrollLeft !== left) node.scrollLeft = left
+    if (node.scrollTop !== top) node.scrollTop = top
+  }
+  if (outer && outerAt && (outer.scrollX !== outerAt.x || outer.scrollY !== outerAt.y)) outer.scrollTo(outerAt.x, outerAt.y)
+
+  // The row alone is moved, and only sideways, when the preview is not wholly in it.
+  const row = frame.closest(`[${RESPONSIVE_ROW_ATTRIBUTE}]`)
+  if (!row) return
+  const rowBox = row.getBoundingClientRect()
+  const frameBox = frame.getBoundingClientRect()
+  if (frameBox.left >= rowBox.left && frameBox.right <= rowBox.right) return
+  row.scrollBy({ left: frameBox.left + frameBox.width / 2 - (rowBox.left + rowBox.width / 2), behavior: "instant" })
+}
+
 export const RESPONSIVE_MIN_SIZE = 240
 export const RESPONSIVE_MAX_SIZE = 3840
 

@@ -4,6 +4,7 @@ import type { PreviewGuide } from "../../core/responsive"
 import {
   DEFAULT_RESPONSIVE_DEVICE,
   RESPONSIVE_MAX_PREVIEWS,
+  RESPONSIVE_ROW_ATTRIBUTE,
   clampResponsiveSize,
   moveItem,
   readBreakpoints,
@@ -99,11 +100,11 @@ export function ResponsiveInspector({
     }
   }, [])
 
-  // A wanted size no preview has the width of is added, in place of the last one in a full row.
+  // A wanted size no preview has is added, in place of the last one in a full row.
   useEffect(() => {
     if (!wanted) return
     setPreviews((current) =>
-      current.some((preview) => preview.width === wanted.width)
+      current.some((preview) => preview.width === wanted.width && preview.height === wanted.height)
         ? current
         : [...current.slice(0, RESPONSIVE_MAX_PREVIEWS - 1), createPreview(wanted)],
     )
@@ -198,6 +199,7 @@ export function ResponsiveInspector({
 
       <div
         ref={rowRef}
+        {...{ [RESPONSIVE_ROW_ATTRIBUTE]: "" }}
         className="mesurer-thin-scrollbar msr:min-h-0 msr:flex-1 msr:overflow-auto msr:overscroll-contain"
         onClick={closeFromStage}
       >

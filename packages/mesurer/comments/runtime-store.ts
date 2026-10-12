@@ -80,6 +80,7 @@ export class CommentRuntimeStore {
 
   attach(id: string, target: CommentTarget, element: Element | null) {
     this.targets.set(id, target)
+    const wasUnresolved = this.snapshot.unresolvedIds.has(id)
     const unresolvedIds = new Set(this.snapshot.unresolvedIds)
     if (element) {
       this.elements.set(id, element)
@@ -88,6 +89,8 @@ export class CommentRuntimeStore {
       unresolvedIds.delete(id)
     } else {
       this.elements.delete(id)
+      // Where it was is no longer where anything is.
+      this.rects.delete(id)
       this.retryDelays.set(id, this.retryDelays.get(id) ?? 250)
       this.retryAt.set(id, Date.now())
       unresolvedIds.add(id)
@@ -96,6 +99,10 @@ export class CommentRuntimeStore {
     if (element || this.targets.size > 0) this.start()
     else if (this.elements.size === 0 && !this.snapshot.hoverElement) this.stop()
     this.refresh()
+    // A comment that has just lost what it was on (its preview closed) is said to have at once.
+    // The refresh above tells of it only when something else changed too, and until then the
+    // comment stayed drawn where it had been, over whatever had moved into that place.
+    if (wasUnresolved !== !element) this.emit()
   }
 
   detach(id: string) {

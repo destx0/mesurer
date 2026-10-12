@@ -43,7 +43,7 @@ import { useXray } from "./hooks/use-xray";
 import { useArrowsPointer } from "./hooks/use-arrows-pointer";
 import { usePenPointer } from "./hooks/use-pen-pointer";
 import { copyCommentsForAgent, useCommentPointer } from "./comments";
-import { removePreviewSelection } from "./core/responsive";
+import { removePreviewSelection, scrollElementIntoView } from "./core/responsive";
 import { createLayoutGuide, type LayoutGuide } from "./core/layout-guides";
 import { getRectFromPoints } from "./core/geometry";
 import { attachPinnedGuideTarget } from "./core/distances";
@@ -1344,7 +1344,7 @@ export function MesurerClient({
     const element = commentRuntime.getElement(id)
     if (!element?.isConnected || !element.ownerDocument.defaultView) return
     revealCommentRef.current = null
-    element.scrollIntoView({ block: "center", inline: "center" })
+    scrollElementIntoView(element)
   }, [commentRuntime, commentRuntimeSnapshot, selectedCommentId])
   // A comment is shown where it was left: on the page, or over the previews while the one it
   // was left in is open.
@@ -1730,7 +1730,7 @@ export function MesurerClient({
             setSelectedCommentId(id)
             const element = commentRuntime.getElement(id)
             // Not there yet when its preview is only now being opened: shown once it is found.
-            if (element?.isConnected && element.ownerDocument.defaultView) element.scrollIntoView({ block: "center", inline: "center" })
+            if (element?.isConnected && element.ownerDocument.defaultView) scrollElementIntoView(element)
             else revealCommentRef.current = id
           },
            onDelete: deleteComment,

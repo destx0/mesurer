@@ -46,18 +46,18 @@ const getPageView = (element: Element, ownerWindow: Window) => {
 // A page's address without the place in it.
 const pageAddress = (url: string) => url.split("#")[0]
 
-// The page in the preview a comment was left in: the one of that size, or failing that of that
-// width, while it still shows the page the comment is about.
-const getPreviewDocument = (target: CommentTarget, ownerDocument: Document) => {
-  const previews = getOwnFrameDocuments(ownerDocument).filter(
+// The page in the preview a comment was left in: the one of that very size, while it still shows
+// the page the comment is about. Not one that only shares its width: with the preview it was
+// left in removed, the comment would move onto another screen, which it was never left on.
+const getPreviewDocument = (target: CommentTarget, ownerDocument: Document) =>
+  getOwnFrameDocuments(ownerDocument).find(
     ({ defaultView }) =>
       defaultView &&
       isResponsivePreview(defaultView) &&
       defaultView.innerWidth === target.viewport?.width &&
+      defaultView.innerHeight === target.viewport?.height &&
       (!target.url || pageAddress(defaultView.location.href) === pageAddress(target.url)),
-  )
-  return previews.find(({ defaultView }) => defaultView?.innerHeight === target.viewport?.height) ?? previews[0] ?? null
-}
+  ) ?? null
 
 const getShadowPath = (element: Element) => {
   const path: string[] = []
