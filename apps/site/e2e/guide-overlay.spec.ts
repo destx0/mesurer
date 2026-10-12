@@ -1330,7 +1330,7 @@ test("Appearance setting switches the Mesurer theme", async ({ page }) => {
 
   await page.getByRole("button", { name: /Settings/ }).click();
   await page.getByRole("button", { name: "Comment menu" }).click();
-  await expect(page.getByRole("menu")).toHaveCSS("background-color", "rgb(58, 58, 58)");
+  await expect(page.getByRole("menu")).toHaveCSS("background-color", "rgb(50, 50, 50)");
 
   await page.getByRole("button", { name: /Settings/ }).click();
   await appearance.selectOption("light");
