@@ -1,6 +1,18 @@
 import { defineConfig, type Options } from "tsup";
 
+// The build runs in Node, whose types this project does not otherwise need.
+declare const process: { env: Record<string, string | undefined> };
+
 const production = { "process.env.NODE_ENV": JSON.stringify("production") };
+
+// Saving a review is built in only when asked for (`MESURER_REVIEW=1`), until reviews are kept on
+// the platform. Without it the Save button is not offered, and what only saving needs (in the
+// library, the content script and the background) is compiled out.
+const withReview = process.env.MESURER_REVIEW === "1";
+const review = {
+  __MESURER_REVIEW__: JSON.stringify(withReview),
+  "globalThis.__MESURER_NO_REVIEW__": JSON.stringify(!withReview),
+};
 
 // dist is emptied by scripts/clean-dist.mjs before this runs: the builds below share it.
 const shared: Options = {
@@ -33,9 +45,7 @@ export default defineConfig([
       ...production,
       "globalThis.__MESURER_EXTENSION__": "true",
       __MESURER_SNAPDOM_CAPTURE__: "false",
-      // Saving a review is built in only when asked for (`MESURER_REVIEW=1`), until reviews are
-      // kept on the platform.
-      __MESURER_REVIEW__: JSON.stringify(process.env.MESURER_REVIEW === "1"),
+      ...review,
     },
   },
   {
@@ -46,7 +56,7 @@ export default defineConfig([
       "offscreen-recording": "src/offscreen-recording.ts",
       "recording-player": "src/recording-player.tsx",
     },
-    define: { ...production, __MESURER_SNAPDOM_CAPTURE__: "false" },
+    define: { ...production, __MESURER_SNAPDOM_CAPTURE__: "false", ...review },
   },
   {
     ...shared,

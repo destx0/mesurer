@@ -70,7 +70,7 @@ export function MesurerUnstyled({
     return null;
   }
 
-  const restoredReviewState = reviewState
+  const restoredReviewState = reviewState && !globalThis.__MESURER_NO_REVIEW__
     ? restoreReviewWorkspace(reviewState, resolvedPortalTarget?.ownerDocument ?? document)
     : undefined;
 

@@ -285,11 +285,11 @@ const mount = async () => {
         // On by default, as in the package: "Use defaults" in Settings leaves Persist on.
         persistOnReload={(extensionGlobal[PERSIST_DEFAULT_KEY] ?? true) || new URLSearchParams(location.search).has("persist")}
         captureVisibleTab={captureVisibleTabPng}
-        captureDom={typeof chrome !== "undefined" ? captureDocumentWithSnapdom : undefined}
-        createReviewViewer={typeof chrome !== "undefined" ? createReviewViewer : undefined}
         features={{ review: __MESURER_REVIEW__ }}
-        publishReview={typeof chrome !== "undefined" ? publishReview : undefined}
-        showReviewLoading={typeof chrome !== "undefined" ? showReviewLoading : undefined}
+        // What saving a review needs, in a build that offers it.
+        {...(__MESURER_REVIEW__ && typeof chrome !== "undefined"
+          ? { captureDom: captureDocumentWithSnapdom, createReviewViewer, publishReview, showReviewLoading }
+          : null)}
         extensionRecording={state.extensionRecording}
         extensionRecordingPlayer={recordingPlayer}
       />,

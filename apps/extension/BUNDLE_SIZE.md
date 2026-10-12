@@ -113,3 +113,8 @@ by default) brought the content script to 207.5 KiB, the limit itself, so any fu
 the check. The limit is raised to 210 KiB to leave about 2.5 KiB for fixes. It is not room for
 features: one that needs more gets its own entry here, and past 250 KiB the script is made
 lighter instead of the limit raised.
+
+Saving a review adds about 5 KiB to the content script (212.5 KiB with it built in). A normal
+build leaves it out, since Save is not offered there yet, and stays near 207.5 KiB. The limit is
+raised to 215 KiB so that a build made with `MESURER_REVIEW=1` passes too, and so the feature
+fits when it is switched on for everyone. Past 250 KiB the script is made lighter instead.

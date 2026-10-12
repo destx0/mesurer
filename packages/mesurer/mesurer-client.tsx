@@ -629,6 +629,8 @@ export function MesurerClient({
     return () => ownerWindow.removeEventListener("beforeunload", warn);
   }, [ownerWindow, reviewSaveStatus]);
   const saveReview = useCallback(async () => {
+    // Nothing below is built into a build that does not save reviews.
+    if (globalThis.__MESURER_NO_REVIEW__) return;
     if (savingReviewRef.current) return;
     savingReviewRef.current = true;
     setReviewSaveStatus("saving");
