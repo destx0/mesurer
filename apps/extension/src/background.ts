@@ -6,8 +6,35 @@ const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
 // A review's screenshot is drawn from the page, and a page cannot read the images it shows from
 // other origins unless they allow it. The extension's host permissions can, so it reads them here.
+// Private networks are not read on a page's behalf: an address there is reachable from the
+// browser but not from the internet, and the page could not read it itself. Loopback stays
+// readable, so a site running on this machine still gets its images.
+const isPrivateHost = (hostname: string) => {
+  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  const v4 = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return a === 10 || a === 0 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+  }
+  if (host.includes(":")) return /^(fc|fd)/.test(host) || /^fe[89ab]/.test(host);
+  return host.endsWith(".local") || host.endsWith(".internal");
+};
+
+const readableImageUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && !isPrivateHost(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+// Sent without cookies: an image behind the user's login is not read with it, only one anyone
+// could load. The final address is checked too, since a redirect may lead onto a private network.
 const fetchImageDataUrl = async (url: string) => {
-  const response = await fetch(url, { credentials: "include" });
+  if (!readableImageUrl(url)) throw new Error("Not readable");
+  const response = await fetch(url, { credentials: "omit" });
+  if (!readableImageUrl(response.url)) throw new Error("Redirected to a private network");
   const type = response.headers.get("content-type") ?? "";
   if (!response.ok || !type.startsWith("image/")) throw new Error("Not an image");
   if (Number(response.headers.get("content-length")) > MAX_IMAGE_BYTES) throw new Error("Image too large");
