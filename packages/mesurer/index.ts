@@ -36,6 +36,7 @@ export type {
   RulerSettings,
   ScreenshotSettings,
   ShareMode,
+  TextBackground,
   TextFont,
   TextStyleSettings,
 } from "./core/persistence";

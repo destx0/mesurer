@@ -24,7 +24,7 @@ import {
   type PersistenceRevision,
 } from "./persistence-revision"
 
-export type { TextFont, TextStyleSettings } from "./text-style"
+export type { TextBackground, TextFont, TextStyleSettings } from "./text-style"
 
 export const MESURER_STORAGE_VERSION = 2
 

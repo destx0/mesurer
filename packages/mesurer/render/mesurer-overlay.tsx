@@ -175,6 +175,7 @@ type MesurerOverlayProps = {
     onActivateEditor: (element: HTMLElement) => void
     fontFamily: string
     color: string
+    backdrop: Record<string, string>
   }
   comments?: ComponentPropsWithoutRef<typeof CommentsLayer>
 }

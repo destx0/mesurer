@@ -52,6 +52,8 @@ type TextLayerProps = {
   onActivateEditor: (element: HTMLElement) => void
   fontFamily: string
   color: string
+  /** The styles of what is behind each note, so that it reads over the page. */
+  backdrop: Record<string, string>
   selectionCount: number
 }
 
@@ -164,6 +166,7 @@ export const TextLayer = memo(function TextLayer({
   onEdit,
   fontFamily,
   color,
+  backdrop,
   selectionCount,
 }: TextLayerProps) {
   const dragRef = useRef<TextDrag | null>(null)
@@ -246,6 +249,7 @@ export const TextLayer = memo(function TextLayer({
             onActivateEditor={onActivateEditor}
             fontFamily={fontFamily}
             color={color}
+            backdrop={backdrop}
           />
         )
       })}
@@ -267,7 +271,7 @@ export const TextLayer = memo(function TextLayer({
           onPaste={handleEditorPaste}
           onBlur={handleEditorBlur}
           className={editorClassName}
-          style={{ left: draft.x - scrollOffset.x, top: draft.y - scrollOffset.y, fontFamily, color }}
+          style={{ left: draft.x - scrollOffset.x, top: draft.y - scrollOffset.y, fontFamily, color, ...backdrop }}
           data-mesurer-text-input="true"
         />
       ) : null}
@@ -299,6 +303,7 @@ function TextItem({
   onActivateEditor,
   fontFamily,
   color,
+  backdrop,
   selectionCount,
 }: {
   item: TextAnnotation
@@ -328,6 +333,7 @@ function TextItem({
   onActivateEditor: (element: HTMLElement) => void
   fontFamily: string
   color: string
+  backdrop: Record<string, string>
 }) {
   const nodeRef = useRef<HTMLDivElement | null>(null)
   const boxRef = useRef<HTMLDivElement | null>(null)
@@ -386,6 +392,7 @@ function TextItem({
         transformOrigin: "center center",
         fontFamily,
         color,
+        ...backdrop,
         width: boxWidth,
         ...typeStyle,
       }}

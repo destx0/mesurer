@@ -69,6 +69,7 @@ import {
   type ThemeMode,
 } from "./core/persistence";
 import {
+  resolveTextBackdrop,
   resolveTextFontFamily,
   type TextStyleSettings,
 } from "./core/text-style";
@@ -1833,6 +1834,7 @@ export function MesurerClient({
           onActivateEditor: activateTextEditor,
           fontFamily: resolveTextFontFamily(settings.textStyle),
           color: settings.textStyle.color,
+          backdrop: resolveTextBackdrop(settings.textStyle),
         },
         comments: overlayComments.length > 0 || toolMode === "comments" ? {
           comments: overlayComments,
