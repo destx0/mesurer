@@ -6,6 +6,7 @@ import {
   type ReviewWorkspace,
 } from "./model"
 import { isLayoutGuide } from "../layout-guides"
+import { normalizeTextStyle } from "../text-style"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value))
@@ -219,7 +220,8 @@ export const normalizeReviewState = (value: unknown): ReviewState | null => {
       updatedAt: isFiniteNumber(value.review.updatedAt) ? value.review.updatedAt : 0,
       comments,
       annotations,
-      ...(isTextStyle(value.review.textStyle) ? { textStyle: value.review.textStyle } : {}),
+      // Reviews saved before a text style had a background take the default one for it.
+      ...(isTextStyle(value.review.textStyle) ? { textStyle: normalizeTextStyle(value.review.textStyle) } : {}),
       ...(isWorkspace(value.review.workspace) ? { workspace: value.review.workspace } : {}),
     },
   }
