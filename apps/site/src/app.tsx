@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useClientPath } from "./use-client-path";
+import { TOOLS, toolHref } from "./pages/tools/tools";
 
 const routeLoaders = {
   marketing: () => import("./pages/marketing/route"),
@@ -74,7 +75,9 @@ function Analytics() {
 
 export function App() {
   const path = useClientPath();
-  const canonical = `https://mesurer.dev${path === "/" ? "" : path}`;
+  // An address under /tools that is no tool shows the list of them, and says it is that page.
+  const canonicalPath = path.startsWith("/tools/") && !TOOLS.some((tool) => toolHref(tool.slug) === path) ? "/tools" : path;
+  const canonical = `https://mesurer.dev${canonicalPath === "/" ? "" : canonicalPath}`;
   const page =
     path === "/changelog" ? (
       <ChangelogPage />

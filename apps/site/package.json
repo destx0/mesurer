@@ -6,7 +6,7 @@
     "dev": "vite --force",
     "build": "pnpm --dir ../../packages/mesurer build && vite build",
     "prerender": "node scripts/prerender.mjs",
-    "deploy:pages": "pnpm run build && npx wrangler pages deploy dist --project-name mesurer-site",
+    "deploy:pages": "pnpm run build && pnpm run prerender && npx wrangler pages deploy dist --project-name mesurer-site",
     "preview": "vite preview",
     "test": "pnpm --dir ../../packages/mesurer generate:styles && playwright test"
   },
