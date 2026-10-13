@@ -34,6 +34,30 @@
     <loc>https://mesurer.dev/tools/svg-to-png</loc>
   </url>
   <url>
+    <loc>https://mesurer.dev/tools/svg-to-jpg</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/png-to-jpg</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/jpg-to-png</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/image-to-svg</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/heic-to-jpg</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/avif-to-png</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/jpeg-to-jpg</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/random-color-palette-generator</loc>
+  </url>
+  <url>
     <loc>https://mesurer.dev/tools/px-to-rem</loc>
   </url>
   <url>

@@ -102,15 +102,25 @@ export function MesurerCta({ children }: { children: ReactNode }) {
   );
 }
 
+// Under a tool, the four nearest it in the list, which is kept with like beside like. With no
+// tool given, all of them.
 export function OtherTools({ current }: { current?: string }) {
+  const at = TOOLS.findIndex((tool) => tool.slug === current);
+  const tools =
+    at < 0
+      ? TOOLS
+      : TOOLS.map((tool, index) => ({ tool, index }))
+          .filter(({ index }) => index !== at)
+          .sort((a, b) => Math.abs(a.index - at) - Math.abs(b.index - at) || a.index - b.index)
+          .slice(0, 4)
+          .sort((a, b) => a.index - b.index)
+          .map(({ tool }) => tool);
+  const row = "group flex items-baseline justify-between gap-6 border-b border-border py-3";
   return (
     <ul className="m-0 flex list-none flex-col border-t border-border p-0">
-      {TOOLS.filter((tool) => tool.slug !== current).map((tool) => (
+      {tools.map((tool) => (
         <li key={tool.slug}>
-          <a
-            href={toolHref(tool.slug)}
-            className="group flex items-baseline justify-between gap-6 border-b border-border py-3"
-          >
+          <a href={toolHref(tool.slug)} className={row}>
             <span className="shrink-0 text-strong">{tool.name}</span>
             <span className="truncate text-muted transition-colors group-hover:text-strong">{tool.summary}</span>
           </a>
