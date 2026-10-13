@@ -70,7 +70,7 @@ function App() {
 | `multiMeasureEnabled`    | Keep previous measurements visible. Default `false`.                         |
 | `guideStyle`             | Guide opacity, width, pattern, dash length, and gap.                         |
 | `rulerSettings`          | Ruler opacity and edge reveal.                                               |
-| `textStyle`              | Default text annotation font and color.                                      |
+| `textStyle`              | Font, color, and background new text notes start with.                       |
 
 Props are the defaults. Saved settings override them; **Use defaults** restores the props.
 
@@ -128,7 +128,7 @@ Props are the defaults. Saved settings override them; **Use defaults** restores 
 - **Distance overlays** - Hold Alt for quick spacing checks
 - **Undo/redo** - Command history for guides, measurements, arrows, pen strokes, and text annotations
 - **Comments** - Pin threads to live elements, add replies, move targets, search threads, and copy structured feedback for agents
-- **Settings** - Configure selection, guide, ruler, arrow, text, color, format, and persistence behavior
+- **Settings** - Configure selection, guide, ruler, arrow, color, format, and persistence behavior
 - **Workspace controls** - Persist page workspaces, restore defaults, clear annotations, and minimize Mesurer to a single toolbar button
 
 ## Requirements

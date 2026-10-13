@@ -99,7 +99,11 @@ export const restoreReviewWorkspace = (
     guides: workspace.guides,
     arrows: workspace.arrows,
     penStrokes: workspace.penStrokes,
-    textAnnotations: workspace.textAnnotations,
+    // A review saved before each note kept its own style had one style for them all.
+    textAnnotations: workspace.textAnnotations.map((text) => {
+      const style = text.style ?? workspace.textStyle ?? state.review.textStyle
+      return style ? { ...text, style } : text
+    }),
     measurements,
     heldDistances,
     comments,

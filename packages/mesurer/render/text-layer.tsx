@@ -24,6 +24,7 @@ import {
   rotationFromPointer,
   type ResizeHandle,
 } from "../core/text-transform"
+import { resolveTextStyle, type TextStyleSettings } from "../core/text-style"
 import { TextTransformFrame } from "./text-transform-frame"
 
 type TextDraft = { id?: string; key?: string; x: number; y: number; caretX?: number; caretY?: number }
@@ -50,8 +51,8 @@ type TextLayerProps = {
   onDraftKeyDown: (event: KeyboardEvent<HTMLElement>) => void
   onDraftBlur: () => void
   onActivateEditor: (element: HTMLElement) => void
-  fontFamily: string
-  color: string
+  /** What a new note is written in. One already written keeps its own. */
+  style: TextStyleSettings
   selectionCount: number
 }
 
@@ -162,8 +163,7 @@ export const TextLayer = memo(function TextLayer({
   onChangeStart,
   onTransform,
   onEdit,
-  fontFamily,
-  color,
+  style,
   selectionCount,
 }: TextLayerProps) {
   const dragRef = useRef<TextDrag | null>(null)
@@ -244,8 +244,6 @@ export const TextLayer = memo(function TextLayer({
             onPaste={handleEditorPaste}
             onBlur={handleEditorBlur}
             onActivateEditor={onActivateEditor}
-            fontFamily={fontFamily}
-            color={color}
           />
         )
       })}
@@ -267,7 +265,7 @@ export const TextLayer = memo(function TextLayer({
           onPaste={handleEditorPaste}
           onBlur={handleEditorBlur}
           className={editorClassName}
-          style={{ left: draft.x - scrollOffset.x, top: draft.y - scrollOffset.y, fontFamily, color }}
+          style={{ left: draft.x - scrollOffset.x, top: draft.y - scrollOffset.y, ...resolveTextStyle(style) }}
           data-mesurer-text-input="true"
         />
       ) : null}
@@ -297,8 +295,6 @@ function TextItem({
   onPaste,
   onBlur,
   onActivateEditor,
-  fontFamily,
-  color,
   selectionCount,
 }: {
   item: TextAnnotation
@@ -326,8 +322,6 @@ function TextItem({
   onPaste: (event: ClipboardEvent<HTMLElement>) => void
   onBlur: (event: FocusEvent<HTMLElement>) => void
   onActivateEditor: (element: HTMLElement) => void
-  fontFamily: string
-  color: string
 }) {
   const nodeRef = useRef<HTMLDivElement | null>(null)
   const boxRef = useRef<HTMLDivElement | null>(null)
@@ -384,8 +378,7 @@ function TextItem({
         top: item.y - scrollOffset.y + moveOffset.y,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
         transformOrigin: "center center",
-        fontFamily,
-        color,
+        ...resolveTextStyle(item.style),
         width: boxWidth,
         ...typeStyle,
       }}

@@ -7,6 +7,7 @@ import type {
   SetStateAction,
 } from "react"
 import type { InspectMeasurement, PenStroke, TextAnnotation, Point } from "../core/types"
+import type { TextStyleSettings } from "../core/text-style"
 import { createId } from "../core/utils"
 import { readEditableText } from "../render/text-layer"
 
@@ -19,6 +20,8 @@ export type TextDraft = Point & {
 
 type UseAnnotationCallbacksOptions = {
   textAnnotations: TextAnnotation[]
+  /** What a new note is written in. */
+  textStyle: TextStyleSettings
   selectedTextIds: string[]
   selectedPenStrokeIds: string[]
   scrollOffset: Point
@@ -74,6 +77,7 @@ const clearOtherSelections = ({
 
 export const useAnnotationCallbacks = ({
   textAnnotations,
+  textStyle,
   selectedTextIds,
   selectedPenStrokeIds,
   scrollOffset,
@@ -163,7 +167,7 @@ export const useAnnotationCallbacks = ({
       } else {
         setTextAnnotations((previous) => [
           ...previous,
-          { id, x: draft.x, y: draft.y, text: value },
+          { id, x: draft.x, y: draft.y, text: value, style: textStyle },
         ])
       }
       setSelectedTextIds(selectAfterCommit ? [id] : [])
@@ -179,6 +183,7 @@ export const useAnnotationCallbacks = ({
     textDraftInputRef,
     textDraftRef,
     suppressTextCreateRef,
+    textStyle,
   ])
 
   const activateTextEditor = useCallback((element: HTMLElement) => {

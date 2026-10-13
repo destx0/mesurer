@@ -1,3 +1,5 @@
+import type { TextStyleSettings } from "./text-style"
+
 export type Point = {
   x: number
   y: number
@@ -13,9 +15,25 @@ export type Arrow = {
   rotation?: number
 }
 
+// A point of a pen stroke, with how heavy the ink is there: 0 the thinnest, 1 the thickest. A point
+// without it (one drawn before ink had weight) is drawn at the stroke's own width.
+export type PenPoint = Point & { w?: number }
+
+// The pens there are to draw with. Each has its own width and the way its ink lies: see core/ink.ts.
+export type PenKind = "ink" | "marker"
+// What the pen tool has in hand: one of the pens, or the eraser that rubs their strokes out.
+export type PenChoice = PenKind | "eraser"
+
 export type PenStroke = {
   id: string
-  points: Point[]
+  /** The pen it was drawn with. One drawn before there were several was drawn in ink. */
+  kind?: PenKind
+  /**
+   * Its points are the line the ink follows, as it is drawn, and are not smoothed again. Set on
+   * what the eraser leaves of a stroke, so that rubbing part of it out moves none of the rest.
+   */
+  fixed?: boolean
+  points: PenPoint[]
   color: string
   width: number
   rotation?: number
@@ -29,6 +47,8 @@ export type TextAnnotation = {
   scale?: number
   rotation?: number
   boxWidth?: number
+  /** What the note was written in. A note keeps its own, whatever the next one is set to. */
+  style?: TextStyleSettings
 }
 
 export type CommentMessage = {
@@ -200,6 +220,8 @@ export type OpenMenu =
   | { type: "comments"; panel: boolean }
   | { type: "guide-orientation" }
   | { type: "capture" }
+  | { type: "pen" }
+  | { type: "text" }
   | { type: "guide-context"; ids: string[]; x: number; y: number }
   | { type: "layout-guides" }
   | null

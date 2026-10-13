@@ -1,7 +1,7 @@
 # Extension content-script size budget
 
 `scripts/report-size.mjs` measures the built `content.js` with gzip level 9 and
-fails the extension build above **207.5 KiB**. Site-only Motion/React fixtures are
+fails the extension build above **218 KiB**. Site-only Motion/React fixtures are
 not part of this bundle.
 
 Measured baselines for `feat/inspect-motion`:
@@ -31,6 +31,8 @@ Measured baselines for `feat/inspect-motion`:
 | Comment commands: resolve-all shortcut, shared resolve icon and copy/resolve success feedback | 217.1 KiB | 217.5 KiB |
 | Responsive tool: the page at several sizes side by side in resizable, reorderable frames the tools work in, named devices, and the page's own breakpoints (before: 217.1 KiB, after: 221.1 KiB) | 221.1 KiB | 221.5 KiB |
 | Content script trim: the stylesheet read from the shipped mesurer.css instead of a second copy in the script, and the in-page recording editor and encoders left out (before: 225.2 KiB, after: 207.1 KiB) | 207.1 KiB | 207.5 KiB |
+| Pen tool: ink drawn as smooth, variable-width strokes, a marker, an eraser that rubs out part of a stroke, the tray of pens with their widths and colours, and a colour picker (before: 207.1 KiB, after: to be recorded from the next build) | 216.9 KiB | 217 KiB |
+| Text notes: a background per note, a text style menu on the Text tool, and review notes keeping their own style (before: 216.9 KiB, after: 217.9 KiB) | 217.9 KiB | 218 KiB |
 
 The additional approximately 2.0 KiB implements the review's correctness and
 resource-safety fixes. The final stylesheet and iframe hardening adds
@@ -118,3 +120,11 @@ Saving a review adds about 5 KiB to the content script (212.5 KiB with it built 
 build leaves it out, since Save is not offered there yet, and stays near 207.5 KiB. The limit is
 raised to 215 KiB so that a build made with `MESURER_REVIEW=1` passes too, and so the feature
 fits when it is switched on for everyone. Past 250 KiB the script is made lighter instead.
+
+The pen tool and the text backgrounds took the content script to 216.9 KiB; the text style menu and the per-note review styles take it to 217.9 KiB, and the limit is set to 218 KiB, leaving about 0.1 KiB of headroom. An earlier build of the pen tool, before the eraser, measured about 212 KiB.
+
+From here the limit is raised with each feature as before, up to a ceiling of **250 KiB**. That is
+where a content script built on React, injected only when the extension is opened, stops being an
+ordinary size. Past it the answer is no longer a higher limit but a lighter script: loading what
+is rarely used when it is asked for (motion inspection, the responsive previews), or a smaller
+renderer in the extension's build.

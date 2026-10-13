@@ -607,7 +607,7 @@ export const useAnnotationSelection = ({
         selectedPenStrokeIds.includes(stroke.id)
           ? {
               ...stroke,
-              points: stroke.points.map((point) => ({ x: point.x + dx, y: point.y + dy })),
+              points: stroke.points.map((point) => ({ ...point, x: point.x + dx, y: point.y + dy })),
             }
           : stroke,
       ),

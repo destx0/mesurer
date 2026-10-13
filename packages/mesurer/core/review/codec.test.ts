@@ -30,7 +30,7 @@ const state: ReviewState = {
       heldDistances: [{ id: "distance", rectA: { left: 1, top: 2, width: 3, height: 4 }, rectB: { left: 5, top: 6, width: 7, height: 8 }, normalizedRectA: { left: 1, top: 2, width: 3, height: 4 }, normalizedRectB: { left: 5, top: 6, width: 7, height: 8 }, horizontal: null, vertical: null, connectors: [] }],
       comments: [],
       layoutGuides: [{ id: "layout", kind: "columns", visible: true, color: "#000", opacity: 0.2, count: 4, size: 100, gutter: 20, offset: 0, align: "stretch" }],
-      textStyle: { font: "code", color: "#000" },
+      textStyle: { font: "code", color: "#000", background: "none", backgroundColor: "#ffffff" },
     },
   },
 }

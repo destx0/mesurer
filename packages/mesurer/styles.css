@@ -102,6 +102,13 @@
   --msr-danger-solid-text: #fff;
   --msr-control-thumb: #fff;
   --msr-slider-track: rgba(15, 23, 42, 0.16);
+  /* The pens in the pen tool's tray are the tray's own tone, a shade deeper: their barrel shaded
+     across from one side to the other. */
+  --msr-pen-barrel-1: #dcdce1;
+  --msr-pen-barrel-2: #f6f6f8;
+  --msr-pen-barrel-3: #e3e3e8;
+  --msr-pen-barrel-4: #c9c9d0;
+  --msr-pen-barrel-5: #d6d6dc;
   --msr-shadow-toolbar:
     drop-shadow(0 0 0.4px rgba(0, 0, 0, 0.22))
     drop-shadow(0 6px 18px rgba(0, 0, 0, 0.03))
@@ -274,6 +281,11 @@
     --msr-color-black: #171717;
     --msr-control-thumb: #f4f4f5;
     --msr-slider-track: rgba(245, 245, 245, 0.24);
+    --msr-pen-barrel-1: #18181a;
+    --msr-pen-barrel-2: #2b2b2e;
+    --msr-pen-barrel-3: #1e1e20;
+    --msr-pen-barrel-4: #101011;
+    --msr-pen-barrel-5: #19191b;
     --msr-shadow-toolbar:
       drop-shadow(0 0 0.4px lch(100% 0 0 / 0.4))
       drop-shadow(0 3px 8px lch(0% 0 0 / 0.125))

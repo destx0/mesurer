@@ -30,6 +30,7 @@ import { GroupSelectionFrame } from "./group-selection-frame"
 import { CommentsLayer } from "../comments/comments-layer"
 import { COMMENT_CHROME_SELECTOR, eventPathHits } from "../comments/dom"
 import type { OpenMenu } from "../core/types"
+import type { TextStyleSettings } from "../core/text-style"
 
 type OverlayPointers = {
   onPointerDown: PointerEventHandler<HTMLDivElement>
@@ -137,7 +138,9 @@ type MesurerOverlayProps = {
   }
   pen: {
     strokes: import("../core/types").PenStroke[]
-    preview: { x: number; y: number }[]
+    preview: import("../core/types").PenPoint[]
+    inHand: import("../core/ink").PenInHand
+    eraser: number | null
     scrollOffset: { x: number; y: number }
     selectionMode: boolean
     selectedIds: string[]
@@ -171,8 +174,7 @@ type MesurerOverlayProps = {
     onDraftKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void
     onDraftBlur: () => void
     onActivateEditor: (element: HTMLElement) => void
-    fontFamily: string
-    color: string
+    style: TextStyleSettings
   }
   comments?: ComponentPropsWithoutRef<typeof CommentsLayer>
 }

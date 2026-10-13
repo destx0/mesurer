@@ -11,7 +11,7 @@ import {
   settingsFocusSection,
   type SettingsFocusSection,
 } from "./components/settings-panel";
-import { ColorPicker } from "./components/color-picker";
+import { ColorPanel } from "./components/color-panel";
 import { MesurerPortal } from "./components/mesurer-portal";
 import { useColorPicker } from "./hooks/use-color-picker";
 import { useGuideDragHold } from "./hooks/use-guide-drag-hold";
@@ -44,6 +44,7 @@ import { useArrowsPointer } from "./hooks/use-arrows-pointer";
 import { usePenPointer } from "./hooks/use-pen-pointer";
 import { copyCommentsForAgent, useCommentPointer } from "./comments";
 import { removePreviewSelection, scrollElementIntoView } from "./core/responsive";
+import { ERASER_WIDTH, PEN_KINDS, penInHand } from "./core/ink";
 import { createLayoutGuide, type LayoutGuide } from "./core/layout-guides";
 import { getRectFromPoints } from "./core/geometry";
 import { attachPinnedGuideTarget } from "./core/distances";
@@ -67,10 +68,7 @@ import {
   type RulerSettings,
   type ThemeMode,
 } from "./core/persistence";
-import {
-  resolveTextFontFamily,
-  type TextStyleSettings,
-} from "./core/text-style";
+import type { TextStyleSettings } from "./core/text-style";
 import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
@@ -1316,11 +1314,19 @@ export function MesurerClient({
   });
   cancelArrowInteractionRef.current = arrowsPointer.cancelInteraction;
   hasArrowInteractionRef.current = arrowsPointer.hasActiveInteraction;
+  // Every pen as it is set, and the one in hand.
+  const pens = PEN_KINDS.map((kind) => penInHand(kind, settings.penSettings, settings.arrowColor));
+  const penInHandNow = pens.find((pen) => pen.kind === settings.penKind) ?? pens[0];
+  // How far the eraser reaches, when it is what is in hand.
+  const eraserWidth = settings.penSettings.eraser?.width ?? ERASER_WIDTH;
+  const eraserRadius = settings.penKind === "eraser" ? eraserWidth / 2 : null;
   const penPointer = usePenPointer({
     enabled,
     settingsOpen,
     toolMode,
-    color: settings.arrowColor,
+    pen: penInHandNow,
+    eraser: eraserRadius,
+    penStrokes,
     scrollOffset,
     createActionCommit,
     setPenStrokes: setPenStrokesPersisted,
@@ -1330,6 +1336,7 @@ export function MesurerClient({
   hasPenInteractionRef.current = penPointer.hasActiveInteraction;
   const annotationCallbacks = useAnnotationCallbacks({
     textAnnotations,
+    textStyle: settings.textStyle,
     selectedTextIds,
     selectedPenStrokeIds,
     scrollOffset,
@@ -1787,6 +1794,8 @@ export function MesurerClient({
         pen: {
           strokes: penStrokes,
           preview: penPreview,
+          inHand: penInHandNow,
+          eraser: eraserRadius,
           scrollOffset,
           selectionMode: toolMode === "selection",
           selectedIds: selectedPenStrokeIds,
@@ -1820,8 +1829,7 @@ export function MesurerClient({
           onDraftKeyDown: handleTextKeyDown,
           onDraftBlur: () => finishTextDraft(false, true),
           onActivateEditor: activateTextEditor,
-          fontFamily: resolveTextFontFamily(settings.textStyle),
-          color: settings.textStyle.color,
+          style: settings.textStyle,
         },
         comments: overlayComments.length > 0 || toolMode === "comments" ? {
           comments: overlayComments,
@@ -1885,6 +1893,21 @@ export function MesurerClient({
         onPositionChange: settings.setToolbarPosition,
         dock: settings.toolbarDock,
         autoHide: settings.toolbarAutoHide,
+        pen: {
+          pens,
+          kind: settings.penKind,
+          eraserWidth,
+          onKind: settings.setPenKind,
+          onChange: (setting) =>
+            settings.setPenSettings((previous) => ({
+              ...previous,
+              [settings.penKind]: { ...previous[settings.penKind], ...setting },
+            })),
+        },
+        text: {
+          style: settings.textStyle,
+          onChange: (style) => settings.setTextStyle((previous) => ({ ...previous, ...style })),
+        },
         minimized,
         onInteract: activateToolbar,
         onRestore: restoreToolbar,
@@ -1914,7 +1937,7 @@ export function MesurerClient({
           setActive: colorPicker.setActive,
           onClick: openColorPicker,
           panel: (
-            <ColorPicker
+            <ColorPanel
               active={colorPicker.active}
               sample={colorPicker.sample}
               unsupported={colorPicker.unsupported}
@@ -2046,10 +2069,6 @@ export function MesurerClient({
               rulers={{
                 settings: settings.rulerSettings,
                 setSettings: settings.setRulerSettings,
-              }}
-              text={{
-                settings: settings.textStyle,
-                setSettings: settings.setTextStyle,
               }}
               arrows={{
                 color: settings.arrowColor,

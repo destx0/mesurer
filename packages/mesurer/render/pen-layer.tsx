@@ -1,15 +1,19 @@
 import { memo, useRef, type PointerEvent as ReactPointerEvent } from "react"
-import type { PenStroke, Point } from "../core/types"
+import { inkPath, type PenInHand } from "../core/ink"
+import type { PenPoint, PenStroke, Point } from "../core/types"
 import { boxCenter, rotationFromPointer, type ResizeHandle } from "../core/text-transform"
 import { penBounds, movePenStroke, resizePenStroke, rotatePenStroke } from "../core/pen-transform"
 import { eventView, listenPointerDrag } from "../core/pointer-drag"
 import { TextTransformFrame } from "./text-transform-frame"
 
+// The line through a stroke's points, for the wide invisible band it is picked up by.
 const pathForPoints = (points: Point[]) => points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ")
 
 export const PenLayer = memo(function PenLayer({
   strokes,
   preview,
+  inHand,
+  eraser,
   scrollOffset,
   selectionMode,
   selectedIds,
@@ -23,7 +27,11 @@ export const PenLayer = memo(function PenLayer({
   selectionCount,
 }: {
   strokes: PenStroke[]
-  preview: Point[]
+  /** The stroke being drawn, and the pen it is drawn with. */
+  preview: PenPoint[]
+  inHand: PenInHand
+  /** How far the eraser reaches, when it is in hand: a press shows where it is, not a stroke. */
+  eraser: number | null
   scrollOffset: Point
   selectionMode: boolean
   selectedIds: string[]
@@ -40,7 +48,7 @@ export const PenLayer = memo(function PenLayer({
   const scrollRef = useRef(scrollOffset)
   scrollRef.current = scrollOffset
   if (strokes.length === 0 && preview.length === 0) return null
-  const translate = (points: Point[]) => points.map((point) => ({ x: point.x - scrollOffset.x, y: point.y - scrollOffset.y }))
+  const translate = (points: PenPoint[]) => points.map((point) => ({ ...point, x: point.x - scrollOffset.x, y: point.y - scrollOffset.y }))
   const selectedStrokes = strokes.filter((stroke) => selectedIds.includes(stroke.id))
   const pointerPage = (event: { clientX: number; clientY: number }) => ({
     x: event.clientX + scrollRef.current.x,
@@ -114,12 +122,14 @@ export const PenLayer = memo(function PenLayer({
           data-mesurer-pen-transform={stroke.id}
         >
           <path d={pathForPoints(translate(stroke.points))} fill="none" stroke="transparent" strokeWidth={Math.max(36, stroke.width + 28)} strokeLinecap="round" strokeLinejoin="round" pointerEvents={selectionMode ? "stroke" : "none"} style={selectionMode ? { cursor: "move" } : undefined} onPointerDown={(event) => startMove(stroke, event)} data-mesurer-pen-id={stroke.id} />
-          <path d={pathForPoints(translate(stroke.points))} fill="none" stroke={stroke.color} strokeWidth={stroke.width} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" data-mesurer-pen="true" data-mesurer-pen-id={stroke.id} />
+          <path d={inkPath(translate(stroke.points), stroke.width, stroke.kind, stroke.fixed)} fill={stroke.color} pointerEvents="none" data-mesurer-pen="true" data-mesurer-pen-kind={stroke.kind ?? "ink"} data-mesurer-pen-id={stroke.id} />
         </g>
       ))}
-      {preview.length > 0 ? (
-        <path d={pathForPoints(translate(preview))} fill="none" stroke="#0d99ff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.65} data-mesurer-pen-preview="true" />
-      ) : null}
+      {preview.length === 0 ? null : eraser !== null ? (
+        <circle cx={preview[0].x - scrollOffset.x} cy={preview[0].y - scrollOffset.y} r={eraser} fill="rgba(255,255,255,0.5)" stroke="rgba(0,0,0,0.45)" strokeWidth={1} data-mesurer-pen-eraser="true" />
+      ) : (
+        <path d={inkPath(translate(preview), inHand.width, inHand.kind)} fill={inHand.color} data-mesurer-pen-preview="true" />
+      )}
     </svg>
     {selectionMode ? selectedStrokes.map((stroke) => {
       const box = penBounds(stroke)
