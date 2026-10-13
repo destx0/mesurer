@@ -221,7 +221,7 @@ const createViewerHtml = (encodedPayload: string) => `<!doctype html>
         } else if (annotation.type === "pen") {
           annotations.append(svg("polyline", { points: annotation.points.map((point) => point.x + "," + point.y).join(" "), fill: "none", stroke: annotation.color, "stroke-width": annotation.width, "stroke-linecap": "round", "stroke-linejoin": "round" }));
         } else if (annotation.type === "text") {
-          const textStyle = state.review.textStyle || { font: "sans-serif", color: "#000000" };
+          const textStyle = annotation.style || state.review.textStyle || { font: "sans-serif", color: "#000000" };
           const fontFamily = textStyle.font === "handwritten"
             ? '"Segoe Script", "Bradley Hand", "Apple Chancery", cursive'
             : textStyle.font === "code"

@@ -19,14 +19,12 @@ import { CheckIcon } from "./icons"
 import { SettingsButton } from "./settings-button"
 import { Tooltip, useTooltip } from "./tooltip"
 import { TOOLBAR_DOCKS, type GuideStyle, type InfoCardMode, type RulerSettings, type ScreenshotSettings, type ThemeMode, type ToolbarDock } from "../core/persistence"
-import { TEXT_BACKGROUND_OPTIONS, TEXT_FONT_OPTIONS, type TextBackground, type TextFont, type TextStyleSettings } from "../core/text-style"
 import type { ToolMode } from "../core/types"
 import { getReleaseChannel } from "../core/extension-install"
 
 export type SettingsFocusSection =
   | "guides"
   | "arrows"
-  | "text"
   | "inspect"
   | "color"
   | "screenshot"
@@ -40,7 +38,6 @@ export const settingsFocusSection = (
   if (options.colorPicker) return "color"
   if (toolMode === "guides") return "guides"
   if (toolMode === "arrows") return "arrows"
-  if (toolMode === "text") return "text"
   if (toolMode === "select" || toolMode === "selection") return "inspect"
   if (toolMode === "rulers" || (options.rulersVisible && toolMode === "none")) return "rulers"
   return undefined
@@ -93,10 +90,6 @@ type SettingsPanelProps = {
   rulers: {
     settings: RulerSettings
     setSettings: Dispatch<SetStateAction<RulerSettings>>
-  }
-  text: {
-    settings: TextStyleSettings
-    setSettings: Dispatch<SetStateAction<TextStyleSettings>>
   }
   arrows: {
     color: string
@@ -397,7 +390,6 @@ export function SettingsPanel({
   color,
   camera,
   rulers,
-  text,
   arrows,
   focusSection,
   general,
@@ -423,7 +415,6 @@ export function SettingsPanel({
   } = general
   const { settings: screenshotSettings, setSettings: setScreenshotSettings } = camera
   const { settings: rulerSettings, setSettings: setRulerSettings } = rulers
-  const { settings: textSettings, setSettings: setTextSettings } = text
   const {
     color: arrowColor,
     setColor: setArrowColor,
@@ -567,51 +558,6 @@ export function SettingsPanel({
         <ColorField label="Color" value={arrowColor} fallback="#f97316" ownerWindow={ownerWindow} onChange={setArrowColor} />
         <div className="msr:col-span-2"><SettingsSwitch label="Snap" checked={snapArrowsEnabled} onChange={setSnapArrowsEnabled} /></div>
         <div className="msr:col-span-2"><SettingsSwitch label="Click to place" checked={arrowClickToPlace} onChange={setArrowClickToPlace} /></div>
-      </SettingsSection>
-
-      <SectionDivider />
-      <SettingsSection id="text" title="Text" ariaLabel="Text settings" focused={focusSection === "text"}>
-        <ColorField label="Color" value={textSettings.color} fallback="#000000" ownerWindow={ownerWindow} onChange={(color) => setTextSettings((style) => ({ ...style, color }))} />
-        <label className={`msr:col-span-2 msr:grid msr:h-8 ${SETTINGS_COLUMNS} msr:items-center msr:gap-0 msr:text-[12px] msr:text-ink-700`}>
-          <span>Font</span>
-          <span className="msr:relative msr:block msr:w-full">
-            <select
-              aria-label="Font"
-              value={textSettings.font}
-              className="msr:h-6 msr:w-full msr:appearance-none msr:rounded-control msr:border msr:border-ink-200 msr:bg-surface msr:px-1.5 msr:pr-6 msr:text-[11px] msr:outline-none msr:focus:shadow-[inset_0_0_0_1px_var(--msr-accent)]"
-              onChange={(event) =>
-                setTextSettings((style) => ({ ...style, font: event.target.value as TextFont }))
-              }
-            >
-              {TEXT_FONT_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <span aria-hidden="true" className="msr:pointer-events-none msr:absolute msr:right-2 msr:top-1/2 msr:size-1.5 msr:-translate-y-1/2 msr:rotate-45 msr:border-r msr:border-b msr:border-ink-500" />
-          </span>
-        </label>
-        {/* What is behind a note, so that it reads over any page. */}
-        <label className={`msr:col-span-2 msr:grid msr:h-8 ${SETTINGS_COLUMNS} msr:items-center msr:gap-0 msr:text-[12px] msr:text-ink-700`}>
-          <span>Background</span>
-          <span className="msr:relative msr:block msr:w-full">
-            <select
-              aria-label="Text background"
-              value={textSettings.background}
-              className="msr:h-6 msr:w-full msr:appearance-none msr:rounded-control msr:border msr:border-ink-200 msr:bg-surface msr:px-1.5 msr:pr-6 msr:text-[11px] msr:outline-none msr:focus:shadow-[inset_0_0_0_1px_var(--msr-accent)]"
-              onChange={(event) =>
-                setTextSettings((style) => ({ ...style, background: event.target.value as TextBackground }))
-              }
-            >
-              {TEXT_BACKGROUND_OPTIONS.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-            <span aria-hidden="true" className="msr:pointer-events-none msr:absolute msr:right-2 msr:top-1/2 msr:size-1.5 msr:-translate-y-1/2 msr:rotate-45 msr:border-r msr:border-b msr:border-ink-500" />
-          </span>
-        </label>
-        {textSettings.background === "none" ? null : (
-          <ColorField label="Fill" value={textSettings.backgroundColor} fallback="#ffffff" ownerWindow={ownerWindow} onChange={(backgroundColor) => setTextSettings((style) => ({ ...style, backgroundColor }))} />
-        )}
       </SettingsSection>
 
       <SectionDivider />

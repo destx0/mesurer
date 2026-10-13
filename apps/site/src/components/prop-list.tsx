@@ -41,7 +41,7 @@ const props: { name: string; description: ReactNode }[] = [
   { name: "multiMeasureEnabled", description: "Keep previous measurements visible" },
   { name: "guideStyle", description: "Guide opacity, width, and pattern" },
   { name: "rulerSettings", description: "Ruler opacity and edge reveal" },
-  { name: "textStyle", description: "Default text annotation font and color" },
+  { name: "textStyle", description: "Font, color, and background new text notes start with" },
 ];
 
 export default function PropList() {

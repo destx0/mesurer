@@ -12,18 +12,22 @@ export type TextStyleSettings = {
   backgroundColor: string
 }
 
+// What a new note is written in until it is set otherwise: by hand, in the red the guides are
+// drawn in.
 export const DEFAULT_TEXT_STYLE: TextStyleSettings = {
+  font: "handwritten",
+  color: "oklch(0.63 0.26 29.23)",
+  background: "none",
+  backgroundColor: "#ffffff",
+}
+
+// What a note written before each kept its own style is shown in.
+export const LEGACY_TEXT_STYLE: TextStyleSettings = {
   font: "sans-serif",
   color: "#000000",
   background: "none",
   backgroundColor: "#ffffff",
 }
-
-export const TEXT_BACKGROUND_OPTIONS: Array<{ value: TextBackground; label: string }> = [
-  { value: "none", label: "None" },
-  { value: "label", label: "Label" },
-  { value: "outline", label: "Outline" },
-]
 
 export const TEXT_FONT_OPTIONS: Array<{ value: TextFont; label: string }> = [
   { value: "handwritten", label: "Handwritten" },
@@ -53,7 +57,7 @@ const OUTLINE = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1
  * The styles that put a note's background behind it. They are in ems, so they grow with the
  * note, and take no room, so a note stays where it was put whichever is chosen.
  */
-export const resolveTextBackdrop = (style: TextStyleSettings): Record<string, string> => {
+const resolveTextBackdrop = (style: TextStyleSettings): Record<string, string> => {
   const backdrop = style.backgroundColor
   if (style.background === "label") {
     // A fine line and a soft shadow round it, so that a label the colour of the page under it
@@ -70,7 +74,14 @@ export const resolveTextBackdrop = (style: TextStyleSettings): Record<string, st
   return {}
 }
 
-export const resolveTextFontFamily = (style: TextStyleSettings) => FONT_STACKS[style.font]
+export const textFontFamily = (font: TextFont) => FONT_STACKS[font]
+
+/** Everything a note is styled with: its font, its colour and what is behind it. */
+export const resolveTextStyle = (style: TextStyleSettings = LEGACY_TEXT_STYLE): Record<string, string> => ({
+  fontFamily: textFontFamily(style.font),
+  color: style.color,
+  ...resolveTextBackdrop(style),
+})
 
 export const normalizeTextStyle = (value: unknown): TextStyleSettings | undefined => {
   if (!value || typeof value !== "object") return undefined

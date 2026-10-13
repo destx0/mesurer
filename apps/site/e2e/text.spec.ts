@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 const textItems = (page: Page) =>
   page.locator('[data-mesurer-text="true"]');
 
+const textCard = (page: Page) => page.locator("[data-mesurer-text-card]");
+
 const activateText = async (page: Page) => {
   await expect(page.locator(".mesurer-toolbar-tool-switch")).toBeVisible();
   const button = page.getByRole("button", { name: "Text (T)" });
@@ -519,14 +521,15 @@ test("rotates a selected text annotation", async ({ page }) => {
   await expect(textItems(page)).toHaveCSS("transform", /matrix/);
 });
 
-test("applies the text font from settings", async ({ page }) => {
+test("writes in the font picked from the text menu", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
-  await page.getByRole("button", { name: "Settings" }).click();
-  const dialog = page.getByRole("dialog", { name: "Settings" });
-  await dialog.getByLabel("Font").selectOption("code");
-  await page.keyboard.press("Escape");
-
   await activateText(page);
+  const caret = page.getByRole("button", { name: "Text style" });
+  await caret.click();
+  await textCard(page).getByRole("button", { name: "Code", exact: true }).click();
+  await caret.click();
+  await expect(textCard(page)).toHaveCount(0);
+
   await page.mouse.click(220, 180);
   await page.getByRole("textbox", { name: "Text annotation" }).fill("Code face");
   await page.keyboard.press("Escape");
@@ -534,35 +537,34 @@ test("applies the text font from settings", async ({ page }) => {
   await expect(textItems(page)).toHaveAttribute("style", /ui-monospace/);
 });
 
-test("updates existing text when the text color changes", async ({ page }) => {
+test("keeps a note as it was written when the text color changes", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activateText(page);
   await page.mouse.click(220, 180);
-  await page.getByRole("textbox", { name: "Text annotation" }).fill("Color me");
+  await page.getByRole("textbox", { name: "Text annotation" }).fill("First");
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Settings" }).click();
-  const text = page.getByRole("dialog", { name: "Settings" }).locator("section[aria-label='Text settings']");
-  await text.getByLabel("Color hex value").fill("FF0000");
+  // Setting what to write in takes the text tool up again.
+  const caret = page.getByRole("button", { name: "Text style" });
+  await caret.click();
+  await textCard(page).getByRole("button", { name: "#22c55e" }).click();
+  await caret.click();
+  await expect(page.getByRole("button", { name: "Text (T)" })).toHaveAttribute("aria-pressed", "true");
+
+  await page.mouse.click(220, 320);
+  await page.getByRole("textbox", { name: "Text annotation" }).fill("Second");
   await page.keyboard.press("Escape");
 
-  await expect(textItems(page)).toHaveCSS("color", "rgb(255, 0, 0)");
+  await expect(textItems(page)).toHaveCount(2);
+  await expect(textItems(page).nth(0)).not.toHaveCSS("color", "rgb(34, 197, 94)");
+  await expect(textItems(page).nth(1)).toHaveCSS("color", "rgb(34, 197, 94)");
 });
 
-test("opens settings on the text section from the Text tool", async ({ page }) => {
+test("opens the text menu from the Text tool's caret, handwritten by default", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activateText(page);
-  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Text style" }).click();
 
-  const panel = page.locator(".mesurer-settings-panel");
-  const section = panel.locator('[data-mesurer-settings-section="text"]');
-  await expect(section).toHaveAttribute("data-focused", "true");
-  await expect
-    .poll(async () => {
-      const panelBox = await panel.boundingBox();
-      const sectionBox = await section.boundingBox();
-      if (!panelBox || !sectionBox) return Number.POSITIVE_INFINITY;
-      return sectionBox.y - panelBox.y;
-    })
-    .toBeLessThan(12);
+  await expect(textCard(page).getByRole("button", { name: "Handwritten" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toHaveCount(0);
 });

@@ -4,18 +4,11 @@ import { ERASER_WIDTHS, PEN_STYLES, type PenInHand, type PenSetting } from "../c
 import type { PenChoice, PenKind } from "../core/types"
 import { cn } from "../core/utils"
 import { ColorPicker } from "./color-picker"
+import { inkOf, surface, Swatches } from "./swatches"
 
 // The colours a pen is offered in: enough to tell one remark from another on a page, and no
 // more than fit beside its widths. Any other is picked from the last of them.
 const COLORS = ["#ef4444", "#facc15", "#22c55e", "#0d99ff", "#111827"]
-const RAINBOW = "conic-gradient(#ff453a, #ff9f0a, #ffd60a, #30d158, #64d2ff, #0a84ff, #bf5af2, #ff375f, #ff453a)"
-
-// A pen's colour and how solid it is, apart: the pens are drawn in the colour itself, however
-// see-through their ink. A colour this cannot read is taken as it is, and as solid.
-const inkOf = (color: string) => {
-  const sample = parseCssColor(color)
-  return sample ? { solid: colorToHex({ ...sample, alpha: 1 }), alpha: sample.alpha } : { solid: color, alpha: 1 }
-}
 
 // A colour as solid as another is: picking one of the colours offered leaves the ink as
 // see-through as it was.
@@ -85,8 +78,6 @@ const ERASER_SHAPE = (
     <Inked d="M11 31V20c0-6.5 3-10.5 9-10.5s9 4 9 10.5v11Z" color="#f0a8a3" />
   </>
 )
-
-const surface = "mesurer-menu-surface msr:bg-surface msr:shadow-floating"
 
 // What the pen tool draws with, opened from the tool's caret, after the tray of pens on a phone:
 // the pens and the eraser stand in a small tray, the one in hand raised. Under it is how wide
@@ -204,35 +195,15 @@ export function PenCard({
         {inHand && ink ? (
           <>
             <span className="msr:h-4 msr:w-px msr:shrink-0 msr:bg-ink-200" aria-hidden="true" />
-            <div className="msr:flex msr:min-w-0 msr:flex-1 msr:items-center msr:justify-between" role="group" aria-label="Color">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  aria-label={color}
-                  aria-pressed={color === ink.solid}
-                  className={cn(
-                    "msr:size-4 msr:shrink-0 msr:rounded-full msr:border msr:border-black/10 msr:outline-none msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)]",
-                    color === ink.solid && "msr:shadow-[0_0_0_2px_var(--msr-surface),0_0_0_3px_var(--msr-color-ink-500)]",
-                  )}
-                  style={{ backgroundColor: color }}
-                  onClick={() => onChange({ color: withAlpha(color, ink.alpha) })}
-                />
-              ))}
-              {/* Any other colour, and how solid the ink is. */}
-              <button
-                type="button"
-                aria-label="More colors"
-                aria-expanded={picking}
-                title="More colors"
-                className={cn(
-                  "msr:size-4 msr:shrink-0 msr:rounded-full msr:outline-none msr:focus-visible:shadow-[0_0_0_2px_var(--msr-accent)]",
-                  picking && "msr:shadow-[0_0_0_2px_var(--msr-surface),0_0_0_3px_var(--msr-color-ink-500)]",
-                )}
-                style={{ background: RAINBOW }}
-                onClick={() => setPicking((open) => !open)}
-              />
-            </div>
+            {/* The last of them is any other colour, and how solid the ink is. */}
+            <Swatches
+              label="Color"
+              colors={COLORS}
+              value={ink.solid}
+              picking={picking}
+              onPick={(color) => onChange({ color: withAlpha(color, ink.alpha) })}
+              onMore={() => setPicking((open) => !open)}
+            />
           </>
         ) : null}
       </div>

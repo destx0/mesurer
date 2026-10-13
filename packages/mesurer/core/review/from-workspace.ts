@@ -1,6 +1,6 @@
 import type { MesurerStoredWorkspace } from "../persistence"
 import type { CommentTarget, DistanceOverlay, Measurement } from "../types"
-import type { TextStyleSettings } from "../text-style"
+import { LEGACY_TEXT_STYLE, type TextStyleSettings } from "../text-style"
 import { captureDomFingerprint } from "./dom-fingerprint"
 import type {
   DomFingerprint,
@@ -93,7 +93,7 @@ export const createReviewStateFromWorkspace = ({
   const annotations: ReviewAnnotation[] = [
     ...workspace.arrows.map((arrow) => ({ type: "arrow" as const, ...arrow })),
     ...workspace.penStrokes.map((stroke) => ({ type: "pen" as const, ...stroke })),
-    ...workspace.textAnnotations.map((text) => ({ type: "text" as const, ...text })),
+    ...workspace.textAnnotations.map((text) => ({ type: "text" as const, ...text, style: text.style ?? LEGACY_TEXT_STYLE })),
     ...workspace.guides.map((guide) => ({ type: "guide" as const, ...guide })),
     ...workspace.measurements.map(({ elementRef, ...measurement }) => ({
       type: "measurement" as const,

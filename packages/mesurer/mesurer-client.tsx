@@ -68,11 +68,7 @@ import {
   type RulerSettings,
   type ThemeMode,
 } from "./core/persistence";
-import {
-  resolveTextBackdrop,
-  resolveTextFontFamily,
-  type TextStyleSettings,
-} from "./core/text-style";
+import type { TextStyleSettings } from "./core/text-style";
 import type { MesurerFeatures, ResolvedMesurerFeatures } from "./core/features";
 import { useMesurerStorage } from "./hooks/use-mesurer-storage";
 import { usePageWorkspaceSwitch } from "./hooks/use-page-workspace-switch";
@@ -1340,6 +1336,7 @@ export function MesurerClient({
   hasPenInteractionRef.current = penPointer.hasActiveInteraction;
   const annotationCallbacks = useAnnotationCallbacks({
     textAnnotations,
+    textStyle: settings.textStyle,
     selectedTextIds,
     selectedPenStrokeIds,
     scrollOffset,
@@ -1832,9 +1829,7 @@ export function MesurerClient({
           onDraftKeyDown: handleTextKeyDown,
           onDraftBlur: () => finishTextDraft(false, true),
           onActivateEditor: activateTextEditor,
-          fontFamily: resolveTextFontFamily(settings.textStyle),
-          color: settings.textStyle.color,
-          backdrop: resolveTextBackdrop(settings.textStyle),
+          style: settings.textStyle,
         },
         comments: overlayComments.length > 0 || toolMode === "comments" ? {
           comments: overlayComments,
@@ -1908,6 +1903,10 @@ export function MesurerClient({
               ...previous,
               [settings.penKind]: { ...previous[settings.penKind], ...setting },
             })),
+        },
+        text: {
+          style: settings.textStyle,
+          onChange: (style) => settings.setTextStyle((previous) => ({ ...previous, ...style })),
         },
         minimized,
         onInteract: activateToolbar,
@@ -2070,10 +2069,6 @@ export function MesurerClient({
               rulers={{
                 settings: settings.rulerSettings,
                 setSettings: settings.setRulerSettings,
-              }}
-              text={{
-                settings: settings.textStyle,
-                setSettings: settings.setTextStyle,
               }}
               arrows={{
                 color: settings.arrowColor,

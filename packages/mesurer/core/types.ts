@@ -1,3 +1,5 @@
+import type { TextStyleSettings } from "./text-style"
+
 export type Point = {
   x: number
   y: number
@@ -45,6 +47,8 @@ export type TextAnnotation = {
   scale?: number
   rotation?: number
   boxWidth?: number
+  /** What the note was written in. A note keeps its own, whatever the next one is set to. */
+  style?: TextStyleSettings
 }
 
 export type CommentMessage = {
@@ -217,6 +221,7 @@ export type OpenMenu =
   | { type: "guide-orientation" }
   | { type: "capture" }
   | { type: "pen" }
+  | { type: "text" }
   | { type: "guide-context"; ids: string[]; x: number; y: number }
   | { type: "layout-guides" }
   | null

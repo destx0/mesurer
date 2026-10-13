@@ -598,8 +598,12 @@ export const normalizePageArtifacts = (value: unknown): MesurerPageArtifacts | n
       ? input.selectedTextIds.filter((id): id is string => typeof id === "string")
       : [],
     penStrokes: Array.isArray(input.penStrokes) ? input.penStrokes.filter(isPenStroke) : [],
+    // A note's style is read as the settings' is: what cannot be read of it takes the default.
     textAnnotations: Array.isArray(input.textAnnotations)
-      ? input.textAnnotations.filter(isTextAnnotation)
+      ? input.textAnnotations.filter(isTextAnnotation).map(({ style, ...note }) => {
+          const read = normalizeTextStyle(style)
+          return read ? { ...note, style: read } : note
+        })
       : [],
     measurements: input.measurements.filter(isMeasurement),
     activeMeasurement: isMeasurement(input.activeMeasurement) ? input.activeMeasurement : null,

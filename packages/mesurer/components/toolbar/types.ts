@@ -6,6 +6,7 @@ import type { ObservedMotionTarget } from "../../core/observed-motion";
 import type { ToolbarDock } from "../../core/persistence";
 import type { ToolbarPlacement } from "../../core/toolbar-dock";
 import type { PenInHand, PenSetting } from "../../core/ink";
+import type { TextStyleSettings } from "../../core/text-style";
 import type { OpenMenu, PenChoice, ToolMode } from "../../core/types";
 
 export type ToolbarTools = {
@@ -90,6 +91,12 @@ export type ToolbarPen = {
   onChange: (setting: PenSetting) => void;
 };
 
+export type ToolbarText = {
+  /** What the next note is written in. */
+  style: TextStyleSettings;
+  onChange: (style: Partial<TextStyleSettings>) => void;
+};
+
 export type ToolbarResponsive = {
   open: boolean;
   onToggle: () => void;
@@ -120,6 +127,7 @@ export type ToolbarProps = {
   layoutGuides: ToolbarLayoutGuides;
   responsive: ToolbarResponsive;
   pen: ToolbarPen;
+  text: ToolbarText;
   settings: ToolbarSettings;
   features: ResolvedMesurerFeatures;
   openMenu: OpenMenu;
