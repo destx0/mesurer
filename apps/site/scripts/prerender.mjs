@@ -16,6 +16,23 @@ const routes = [
   { path: "/changelog", ready: "#doc-title" },
   { path: "/privacy", ready: "#doc-title" },
   { path: "/terms", ready: "#doc-title" },
+  { path: "/tools", ready: "#tool-title" },
+  { path: "/tools/aspect-ratio-calculator", ready: "#tool-title" },
+  { path: "/tools/color-picker", ready: "#tool-title" },
+  { path: "/tools/rgb-to-hex", ready: "#tool-title" },
+  { path: "/tools/hex-to-rgb", ready: "#tool-title" },
+  { path: "/tools/webp-to-png", ready: "#tool-title" },
+  { path: "/tools/svg-to-png", ready: "#tool-title" },
+  { path: "/tools/svg-to-jpg", ready: "#tool-title" },
+  { path: "/tools/png-to-jpg", ready: "#tool-title" },
+  { path: "/tools/jpg-to-png", ready: "#tool-title" },
+  { path: "/tools/image-to-svg", ready: "#tool-title" },
+  { path: "/tools/heic-to-jpg", ready: "#tool-title" },
+  { path: "/tools/avif-to-png", ready: "#tool-title" },
+  { path: "/tools/jpeg-to-jpg", ready: "#tool-title" },
+  { path: "/tools/random-color-palette-generator", ready: "#tool-title" },
+  { path: "/tools/px-to-rem", ready: "#tool-title" },
+  { path: "/tools/rem-to-px", ready: "#tool-title" },
 ];
 
 const outFile = (route) =>

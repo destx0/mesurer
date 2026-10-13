@@ -1,4 +1,10 @@
+import { TOOLS, toolHref } from "../tools/tools";
+
 const feedbackUrl = "https://github.com/ibelick/mesurer/issues/new?title=Feedback&body=**What%20happened%3F**%0A%0A%0A**What%20would%20help%3F**%0A%0A%0A**Context**%20%28browser%2C%20URL%29%0A";
+
+// The four tools most looked for. The rest are a link away, under "All tools".
+const FOOTER_TOOLS = ["color-picker", "webp-to-png", "heic-to-jpg", "aspect-ratio-calculator"];
+const footerTools = FOOTER_TOOLS.flatMap((slug) => TOOLS.filter((tool) => tool.slug === slug));
 
 const linkClassName = "text-sm text-muted transition-colors hover:text-strong";
 
@@ -53,6 +59,14 @@ export default function MarketingFooter() {
             <FooterLink href="/docs">Getting started</FooterLink>
             <FooterLink href="/docs/props">Props</FooterLink>
             <FooterLink href="/docs/shortcuts">Shortcuts</FooterLink>
+            <FooterLink href="/llms.txt" external>llms.txt</FooterLink>
+          </div>
+          <div className="flex flex-col items-start gap-2">
+            <h2 className="mb-1 text-sm font-medium text-strong">Tools</h2>
+            {footerTools.map((tool) => (
+              <FooterLink key={tool.slug} href={toolHref(tool.slug)}>{tool.name}</FooterLink>
+            ))}
+            <FooterLink href="/tools">All tools</FooterLink>
           </div>
           <div className="flex flex-col items-start gap-2">
             <h2 className="mb-1 text-sm font-medium text-strong">Connect</h2>

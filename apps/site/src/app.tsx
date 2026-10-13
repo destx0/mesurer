@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { useClientPath } from "./use-client-path";
+import { TOOLS, toolHref } from "./pages/tools/tools";
 
 const routeLoaders = {
   marketing: () => import("./pages/marketing/route"),
@@ -7,12 +8,14 @@ const routeLoaders = {
   privacy: () => import("./pages/privacy"),
   terms: () => import("./pages/terms"),
   docs: () => import("./pages/docs"),
+  tools: () => import("./pages/tools"),
 } as const;
 const MarketingPage = lazy(routeLoaders.marketing);
 const ChangelogPage = lazy(routeLoaders.changelog);
 const PrivacyPage = lazy(routeLoaders.privacy);
 const TermsPage = lazy(routeLoaders.terms);
 const DocsPage = lazy(routeLoaders.docs);
+const ToolsPage = lazy(routeLoaders.tools);
 const OldPage = lazy(() => import("./pages/old"));
 
 const prefetchRoute = (pathname: string) => {
@@ -21,6 +24,7 @@ const prefetchRoute = (pathname: string) => {
   if (pathname === "/privacy") return routeLoaders.privacy();
   if (pathname === "/terms") return routeLoaders.terms();
   if (pathname === "/docs" || pathname.startsWith("/docs/")) return routeLoaders.docs();
+  if (pathname === "/tools" || pathname.startsWith("/tools/")) return routeLoaders.tools();
   return null;
 };
 
@@ -71,7 +75,9 @@ function Analytics() {
 
 export function App() {
   const path = useClientPath();
-  const canonical = `https://mesurer.dev${path === "/" ? "" : path}`;
+  // An address under /tools that is no tool shows the list of them, and says it is that page.
+  const canonicalPath = path.startsWith("/tools/") && !TOOLS.some((tool) => toolHref(tool.slug) === path) ? "/tools" : path;
+  const canonical = `https://mesurer.dev${canonicalPath === "/" ? "" : canonicalPath}`;
   const page =
     path === "/changelog" ? (
       <ChangelogPage />
@@ -81,6 +87,8 @@ export function App() {
       <TermsPage />
     ) : path === "/docs" || path.startsWith("/docs/") ? (
       <DocsPage />
+    ) : path === "/tools" || path.startsWith("/tools/") ? (
+      <ToolsPage path={path} />
     ) : path === "/old" ? (
       <OldPage />
     ) : (

@@ -1,0 +1,95 @@
+# Mesurer
+
+> Mesurer is how teams build precise software with their coding agents. Inspect, annotate, and direct changes right on the live interface: stop describing what you have in mind, and show it instead.
+
+Software is now built with coding agents, and the hard part has moved from writing code to saying exactly what should change. Mesurer puts the tools for that on the product itself, so designers, engineers, and agents work from the same live interface, not from screenshots and long descriptions.
+
+## Install
+
+Chrome extension, to use Mesurer on any website:
+
+https://chromewebstore.google.com/detail/mesurer/icmjafcffhpcnadkmmklegommbcekcac
+
+npm package, to add Mesurer to a React project (React 18 or later):
+
+```bash
+npm install mesurer
+```
+
+```tsx
+import { Mesurer } from "mesurer";
+
+function App() {
+  return (
+    <>
+      <YourApp />
+      <Mesurer />
+    </>
+  );
+}
+```
+
+Prompt for a coding agent: "Set up Mesurer in this project: install the `mesurer` package, add `<Mesurer />` to the app, and explain how to use it."
+
+Mesurer needs a Chromium-based browser. Sampling a color from the screen needs Chromium on Windows or macOS.
+
+## Why teams use Mesurer
+
+- Design closer to production: check any element's value, style, or spacing, and set guides on the real interface, to keep quality where the product is built.
+- Show, don't describe: scribble on the live interface, and give feedback that points directly at the element.
+- Work with people and agents alike: comments carry the context a coding agent needs, and are copied to it in one step.
+- Everywhere you build: on any website through the Chrome extension, or inside your own project for every contributor.
+
+## What is in it
+
+- Inspect: the size, spacing, gap, and padding of any element, and the distance between two.
+- Layout guides and rulers: columns, rows, and pixel grids over the page.
+- Typography and colors: the font and color of anything on screen, copied in the format you choose.
+- X-ray and responsive previews: the structure of a page, and the page at several screen sizes side by side.
+- Annotations: arrows, pen strokes, and text notes drawn over the page.
+- Comments: threads pinned to live elements, for teammates and for agents.
+- Capture: a screenshot or a short video of any region, ready to paste.
+
+## Product
+
+- [Home](https://mesurer.dev/): build precise software with your coding agent.
+- [Changelog](https://mesurer.dev/changelog): release notes for the package.
+
+## Docs
+
+- [Getting started](https://mesurer.dev/docs): install the Chrome extension or the npm package.
+- [Props](https://mesurer.dev/docs/props): every prop of the `<Mesurer />` component.
+- [Shortcuts](https://mesurer.dev/docs/shortcuts): keyboard commands for the toolbar.
+
+## Free tools
+
+Free tools that run in the browser. Files are converted on the device and are never uploaded.
+
+- [All tools](https://mesurer.dev/tools): the full list.
+- [Aspect ratio calculator](https://mesurer.dev/tools/aspect-ratio-calculator): find the ratio of a width and height, and resize without stretching.
+- [Color picker](https://mesurer.dev/tools/color-picker): pick a color, or sample one from the screen, and copy it as HEX, RGB, HSL, HSV, or CMYK.
+- [Random color palette generator](https://mesurer.dev/tools/random-color-palette-generator): random palettes of five colors that go together.
+- [RGB to HEX](https://mesurer.dev/tools/rgb-to-hex): convert RGB or RGBA values to a HEX code.
+- [HEX to RGB](https://mesurer.dev/tools/hex-to-rgb): convert a HEX code to RGB or RGBA values.
+- [WebP to PNG](https://mesurer.dev/tools/webp-to-png): convert WebP images to PNG.
+- [SVG to PNG](https://mesurer.dev/tools/svg-to-png): convert SVG files to PNG at 1× to 4× size.
+- [SVG to JPG](https://mesurer.dev/tools/svg-to-jpg): convert SVG files to JPG at 1× to 4× size.
+- [PNG to JPG](https://mesurer.dev/tools/png-to-jpg): convert PNG images to JPG.
+- [JPG to PNG](https://mesurer.dev/tools/jpg-to-png): convert JPG images to PNG.
+- [Image to SVG](https://mesurer.dev/tools/image-to-svg): trace a PNG, JPG, or WebP logo or icon into SVG paths.
+- [HEIC to JPG](https://mesurer.dev/tools/heic-to-jpg): convert iPhone HEIC photos to JPG.
+- [AVIF to PNG](https://mesurer.dev/tools/avif-to-png): convert AVIF images to PNG.
+- [JPEG to JPG](https://mesurer.dev/tools/jpeg-to-jpg): rename .jpeg files to .jpg with no quality lost.
+- [PX to REM](https://mesurer.dev/tools/px-to-rem): convert pixels to rem for CSS.
+- [REM to PX](https://mesurer.dev/tools/rem-to-px): convert rem to pixels for CSS.
+
+## Links
+
+- [GitHub](https://github.com/ibelick/mesurer): issues and feedback.
+- [npm](https://www.npmjs.com/package/mesurer): the `mesurer` package.
+- [X](https://x.com/mesurerdev): updates.
+
+## Optional
+
+- [Privacy policy](https://mesurer.dev/privacy): data handling and extension permissions.
+- [Terms of Service](https://mesurer.dev/terms): terms of use for Mesurer and its hosted features.
