@@ -234,7 +234,7 @@ export default function ToolPage({
 export function ToolsHub() {
   const title = "Free Design Tools | Mesurer";
   const description =
-    "Free tools for designers and developers: an aspect ratio calculator, a color picker, and RGB to HEX and HEX to RGB converters. No sign-up.";
+    "Free tools for designers and developers: a color picker, an aspect ratio calculator, and converters for images, colors, and CSS units. No sign-up.";
   return (
     <main className="min-h-dvh pb-0 pt-20">
       <PageMetadata title={title} description={description} />

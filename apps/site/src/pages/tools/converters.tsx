@@ -17,7 +17,7 @@ import { CopyCode, Field, NumberField, Output, Panel, useQueryState } from "./ui
 function Swatch({ color, value, onPick }: { color: string | null; value: Rgb | null; onPick: (hex: string) => void }) {
   return (
     <label
-      className="relative block size-10 shrink-0 cursor-pointer rounded-md border border-black/10 transition-shadow hover:shadow-[0_0_0_3px_var(--color-subtle)] has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-strong"
+      className="relative block size-10 shrink-0 cursor-pointer rounded-md border border-black/10 transition-shadow hover:shadow-[0_0_0_3px_var(--color-subtle)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-strong"
       title="Pick a color"
       // A see-through colour is shown over a chequerboard.
       style={{

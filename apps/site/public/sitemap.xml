@@ -28,6 +28,18 @@
     <loc>https://mesurer.dev/tools/hex-to-rgb</loc>
   </url>
   <url>
+    <loc>https://mesurer.dev/tools/webp-to-png</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/svg-to-png</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/px-to-rem</loc>
+  </url>
+  <url>
+    <loc>https://mesurer.dev/tools/rem-to-px</loc>
+  </url>
+  <url>
     <loc>https://mesurer.dev/changelog</loc>
   </url>
   <url>
