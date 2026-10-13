@@ -55,6 +55,14 @@ export default function MarketingFooter() {
             <FooterLink href="/docs/shortcuts">Shortcuts</FooterLink>
           </div>
           <div className="flex flex-col items-start gap-2">
+            <h2 className="mb-1 text-sm font-medium text-strong">Free tools</h2>
+            <FooterLink href="/tools/aspect-ratio-calculator">Aspect ratio calculator</FooterLink>
+            <FooterLink href="/tools/color-picker">Color picker</FooterLink>
+            <FooterLink href="/tools/rgb-to-hex">RGB to HEX</FooterLink>
+            <FooterLink href="/tools/hex-to-rgb">HEX to RGB</FooterLink>
+            <FooterLink href="/tools">All tools</FooterLink>
+          </div>
+          <div className="flex flex-col items-start gap-2">
             <h2 className="mb-1 text-sm font-medium text-strong">Connect</h2>
             <FooterLink href={feedbackUrl} external>Feedback</FooterLink>
             <FooterLink href="https://x.com/mesurerdev" external>X (Twitter)</FooterLink>

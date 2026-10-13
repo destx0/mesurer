@@ -101,3 +101,39 @@ img {
   user-select: none;
   -webkit-user-drag: none;
 }
+
+/* The hue slider of the color picker: every hue across the track, under a round thumb. */
+.tool-hue {
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.tool-hue::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 30%);
+  -webkit-appearance: none;
+}
+
+.tool-hue::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 30%);
+}
+
+.tool-hue:focus-visible {
+  outline: 2px solid var(--color-strong);
+  outline-offset: 3px;
+}

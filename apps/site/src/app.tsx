@@ -7,12 +7,14 @@ const routeLoaders = {
   privacy: () => import("./pages/privacy"),
   terms: () => import("./pages/terms"),
   docs: () => import("./pages/docs"),
+  tools: () => import("./pages/tools"),
 } as const;
 const MarketingPage = lazy(routeLoaders.marketing);
 const ChangelogPage = lazy(routeLoaders.changelog);
 const PrivacyPage = lazy(routeLoaders.privacy);
 const TermsPage = lazy(routeLoaders.terms);
 const DocsPage = lazy(routeLoaders.docs);
+const ToolsPage = lazy(routeLoaders.tools);
 const OldPage = lazy(() => import("./pages/old"));
 
 const prefetchRoute = (pathname: string) => {
@@ -21,6 +23,7 @@ const prefetchRoute = (pathname: string) => {
   if (pathname === "/privacy") return routeLoaders.privacy();
   if (pathname === "/terms") return routeLoaders.terms();
   if (pathname === "/docs" || pathname.startsWith("/docs/")) return routeLoaders.docs();
+  if (pathname === "/tools" || pathname.startsWith("/tools/")) return routeLoaders.tools();
   return null;
 };
 
@@ -81,6 +84,8 @@ export function App() {
       <TermsPage />
     ) : path === "/docs" || path.startsWith("/docs/") ? (
       <DocsPage />
+    ) : path === "/tools" || path.startsWith("/tools/") ? (
+      <ToolsPage path={path} />
     ) : path === "/old" ? (
       <OldPage />
     ) : (

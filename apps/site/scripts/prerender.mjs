@@ -16,6 +16,11 @@ const routes = [
   { path: "/changelog", ready: "#doc-title" },
   { path: "/privacy", ready: "#doc-title" },
   { path: "/terms", ready: "#doc-title" },
+  { path: "/tools", ready: "#tool-title" },
+  { path: "/tools/aspect-ratio-calculator", ready: "#tool-title" },
+  { path: "/tools/color-picker", ready: "#tool-title" },
+  { path: "/tools/rgb-to-hex", ready: "#tool-title" },
+  { path: "/tools/hex-to-rgb", ready: "#tool-title" },
 ];
 
 const outFile = (route) =>
