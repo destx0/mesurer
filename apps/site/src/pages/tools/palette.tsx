@@ -92,7 +92,7 @@ function Generator() {
               type="button"
               aria-pressed={swatch.locked}
               className={`absolute top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-1 text-[12px] outline-none transition-opacity focus-visible:opacity-100 focus-visible:underline group-hover:opacity-100 max-sm:left-auto max-sm:right-2 max-sm:top-1/2 max-sm:-translate-y-1/2 max-sm:translate-x-0 ${
-                swatch.locked ? "opacity-100" : "opacity-0 max-sm:opacity-60"
+                swatch.locked ? "opacity-100" : "opacity-0 max-sm:opacity-60 [@media(hover:none)]:opacity-60"
               }`}
               onClick={() => setSwatches((previous) => previous.map((entry, index) => (index === at ? { ...entry, locked: !entry.locked } : entry)))}
             >

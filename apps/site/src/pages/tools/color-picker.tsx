@@ -82,7 +82,9 @@ function Picker() {
     return read ? setRgb(read.rgb) : false;
   };
 
-  useEffect(() => setCanSample("EyeDropper" in window), []);
+  // Not while the page is being built: it is built in a browser that can sample the screen,
+  // and would be handed with the button to browsers that cannot.
+  useEffect(() => setCanSample("EyeDropper" in window && !window.__MESURER_PRERENDER__), []);
   useQueryState({ color: hex.slice(1).toLowerCase() }, (params) => {
     setHex(params.get("color") ?? "");
   });

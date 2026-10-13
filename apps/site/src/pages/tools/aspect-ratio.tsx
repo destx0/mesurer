@@ -57,9 +57,11 @@ function Calculator() {
   const w = toNumber(width);
   const h = toNumber(height);
   const ratio = w && h ? w / h : null;
-  const [ratioW, ratioH] = w && h ? simplify(w, h) : [null, null];
+  // A ratio that goes by a name keeps it: 2520 × 1080 is 21:9, though it comes down to 7:3.
+  const named = ratio ? NAMED.find(([a, b]) => Math.abs(a / b - ratio) < 1e-9) : undefined;
+  const [ratioW, ratioH] = named ?? (w && h ? simplify(w, h) : [null, null]);
   const label = ratioW && ratioH ? `${ratioW}:${ratioH}` : "";
-  const near = ratio && label && !NAMED.some(([a, b]) => `${a}:${b}` === label) ? closest(ratio) : null;
+  const near = ratio && label && !named ? closest(ratio) : null;
 
   const typed = toNumber(target.value);
   const solved = ratio && typed ? (target.side === "width" ? typed / ratio : typed * ratio) : null;

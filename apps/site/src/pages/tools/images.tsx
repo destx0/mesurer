@@ -140,6 +140,8 @@ function Converter({ kind, to = "png" }: { kind: Kind; to?: Output }) {
   const option = to === "svg" ? { label: "Colors", values: COLORS, unit: "", first: 8 } : kind === "svg" ? { label: "Scale", values: SCALES, unit: "×", first: 1 } : null;
   const [scale, setScale] = useState(option?.first ?? 1);
   const [over, setOver] = useState(false);
+  // How many of the files last given were of another kind, and left out.
+  const [skipped, setSkipped] = useState(0);
   const nextId = useRef(0);
   const made = useRef(new Set<string>());
 
@@ -172,7 +174,9 @@ function Converter({ kind, to = "png" }: { kind: Kind; to?: Output }) {
   };
 
   const add = (files: Iterable<File>) => {
-    const added = [...files].filter(matches).map((file) => ({ id: nextId.current++, file, result: null }));
+    const all = [...files];
+    const added = all.filter(matches).map((file) => ({ id: nextId.current++, file, result: null }));
+    setSkipped(all.length - added.length);
     if (added.length === 0) return;
     setItems((previous) => [...previous, ...added]);
     convert(added, scale);
@@ -216,6 +220,12 @@ function Converter({ kind, to = "png" }: { kind: Kind; to?: Output }) {
           }}
         />
       </label>
+
+      {skipped > 0 ? (
+        <p className="m-0 text-[13px] text-red-600" role="status">
+          {skipped === 1 ? "1 file was" : `${skipped} files were`} left out: not {noun}.
+        </p>
+      ) : null}
 
       {option ? (
         <div className="flex items-center gap-3">
