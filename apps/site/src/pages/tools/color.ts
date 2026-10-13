@@ -13,16 +13,6 @@ const pair = (value: number) => byte(value).toString(16).padStart(2, "0");
 export const rgbToHex = ({ r, g, b }: Rgb, alpha = 1) =>
   `#${pair(r)}${pair(g)}${pair(b)}${alpha < 1 ? pair(alpha * 255) : ""}`.toUpperCase();
 
-/** The three-digit form of a hex code, when it has one. */
-export const shortHex = (hex: string) => {
-  const digits = hex.replace("#", "");
-  if (digits.length !== 6 && digits.length !== 8) return null;
-  for (let index = 0; index < digits.length; index += 2) {
-    if (digits[index] !== digits[index + 1]) return null;
-  }
-  return `#${[...digits].filter((_, index) => index % 2 === 0).join("")}`;
-};
-
 /** Reads `#RGB`, `#RGBA`, `#RRGGBB` and `#RRGGBBAA`, with or without the `#`. */
 export const parseHex = (input: string): { rgb: Rgb; alpha: number } | null => {
   const digits = input.trim().replace(/^#/, "");

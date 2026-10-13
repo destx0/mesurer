@@ -1,6 +1,6 @@
 import { useState } from "react";
-import ToolPage, { Section, Table, type Faq } from "./layout";
-import { CopyButton, Field, Output, Panel, useQueryState } from "./ui";
+import ToolPage, { Formula, Section, Table, type Faq } from "./layout";
+import { NumberField, Output, Panel, useQueryState } from "./ui";
 
 const PRESETS = [
   { ratio: "16:9", width: 1920, height: 1080 },
@@ -71,7 +71,7 @@ function Calculator() {
   const box = ratio ? (ratio >= 1 ? { width: "100%", aspectRatio: String(ratio) } : { height: "100%", aspectRatio: String(ratio) }) : null;
 
   return (
-    <Panel className="flex flex-col gap-6">
+    <Panel className="flex flex-col gap-5">
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Common aspect ratios">
         {PRESETS.map((preset) => (
           <button
@@ -91,50 +91,36 @@ function Calculator() {
         ))}
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-[1fr_180px]">
-        <div className="flex flex-col gap-5">
-          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 p-0 font-[450] text-strong">Original size</legend>
-            <div className="flex items-end gap-2">
-              <Field label="Width" inputMode="decimal" value={width} onChange={(event) => setWidth(event.target.value)} aria-invalid={!w} />
-              <span className="pb-2.5 text-muted" aria-hidden="true">×</span>
-              <Field label="Height" inputMode="decimal" value={height} onChange={(event) => setHeight(event.target.value)} aria-invalid={!h} />
-            </div>
-          </fieldset>
-          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 p-0 font-[450] text-strong">New size</legend>
-            <div className="flex items-end gap-2">
-              <Field label="Width" inputMode="decimal" value={newWidth} onChange={(event) => setTarget({ side: "width", value: event.target.value })} />
-              <span className="pb-2.5 text-muted" aria-hidden="true">×</span>
-              <Field label="Height" inputMode="decimal" value={newHeight} onChange={(event) => setTarget({ side: "height", value: event.target.value })} />
-            </div>
-            <p className="m-0 text-[13px] text-muted">Type either side. The other is worked out to keep the ratio.</p>
-            <label className="flex w-fit items-center gap-2 text-[13px] text-muted">
-              <input type="checkbox" checked={whole} onChange={(event) => setWhole(event.target.checked)} className="accent-[#111]" />
-              Round to whole pixels
-            </label>
-          </fieldset>
+      <div className="grid items-center gap-6 sm:grid-cols-[1fr_140px]">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-end gap-2" role="group" aria-label="Original size">
+            <NumberField label="Width" min={1} value={width} onValue={setWidth} aria-invalid={!w} />
+            <span className="pb-2.5 text-muted" aria-hidden="true">×</span>
+            <NumberField label="Height" min={1} value={height} onValue={setHeight} aria-invalid={!h} />
+          </div>
+          <div className="flex items-end gap-2" role="group" aria-label="New size">
+            <NumberField label="New width" min={1} value={newWidth} onValue={(value) => setTarget({ side: "width", value })} />
+            <span className="pb-2.5 text-muted" aria-hidden="true">×</span>
+            <NumberField label="New height" min={1} value={newHeight} onValue={(value) => setTarget({ side: "height", value })} />
+          </div>
+          <label className="flex w-fit items-center gap-2 text-[13px] text-muted">
+            <input type="checkbox" checked={whole} onChange={(event) => setWhole(event.target.checked)} className="accent-[#111]" />
+            Whole pixels
+          </label>
         </div>
 
-        <div className="flex aspect-square w-full max-w-[180px] items-center justify-center justify-self-center rounded-lg bg-subtle p-3" aria-hidden="true">
-          {box ? (
-            <div className="flex max-h-full max-w-full items-center justify-center rounded-[3px] border border-strong bg-bg font-mono text-[12px] text-strong" style={box}>
-              {label.length <= 9 ? label : trim(ratio ?? 0)}
-            </div>
-          ) : null}
+        <div className="hidden aspect-square w-full items-center justify-center sm:flex" aria-hidden="true">
+          {box ? <div className="max-h-full max-w-full rounded-[3px] border border-strong bg-subtle" style={box} /> : null}
         </div>
       </div>
 
       {ratio && label ? (
         <div className="flex flex-col">
-          <Output label={near ? `Aspect ratio (about ${near})` : "Aspect ratio"} value={label} large />
-          <Output label="As a decimal" value={`${trim(ratio, 4)}:1`} />
-          {solved ? <Output label="New size" value={`${newWidth} × ${newHeight}`} /> : null}
+          <Output label={near ? `≈ ${near}` : "Ratio"} value={label} />
           <Output label="CSS" value={`aspect-ratio: ${ratioW} / ${ratioH};`} />
-          <Output label="Padding-top fallback" value={`${trim(100 / ratio, 4)}%`} />
         </div>
       ) : (
-        <p className="m-0 text-muted" role="status">Enter a width and a height above zero to see the ratio.</p>
+        <p className="m-0 border-t border-border pt-3 text-muted" role="status">Enter a width and a height.</p>
       )}
     </Panel>
   );
@@ -143,32 +129,19 @@ function Calculator() {
 const faq: Faq[] = [
   {
     question: "How do I calculate an aspect ratio?",
-    answer:
-      "Divide the width and the height by their greatest common divisor. For 1920 × 1080 that divisor is 120, which gives 16:9. Dividing the width by the height gives the same ratio as a decimal, 1.7778.",
+    answer: "Divide the width and the height by their greatest common divisor. 1920 × 1080 divided by 120 is 16:9.",
   },
   {
-    question: "How do I resize an image without stretching it?",
-    answer:
-      "Keep the ratio the same. Multiply the new width by the original height and divide by the original width to get the new height: 1280 × 1080 ÷ 1920 = 720. Enter the original size and one new side above and the calculator does it for you.",
+    question: "How do I resize without stretching?",
+    answer: "Keep the ratio. New height = new width × height ÷ width, so 1920 × 1080 at 1280 wide is 720 high.",
   },
   {
     question: "What is the aspect ratio of 1920 × 1080?",
-    answer: "1920 × 1080 is 16:9, the same ratio as 1280 × 720, 2560 × 1440, and 3840 × 2160 (4K UHD).",
+    answer: "16:9, the same as 1280 × 720, 2560 × 1440, and 3840 × 2160.",
   },
   {
-    question: "What aspect ratio should I use for social media?",
-    answer:
-      "Vertical video for TikTok, Instagram Reels, and YouTube Shorts is 9:16 (1080 × 1920). Instagram feed posts work best at 4:5 (1080 × 1350) or 1:1 (1080 × 1080). Standard YouTube video is 16:9.",
-  },
-  {
-    question: "How do I set an aspect ratio in CSS?",
-    answer:
-      "Use the aspect-ratio property, for example aspect-ratio: 16 / 9, on an element that has a width. For very old browsers, the fallback is a wrapper with padding-top set to the height divided by the width as a percentage, 56.25% for 16:9.",
-  },
-  {
-    question: "Why does my size give a ratio like 683:384?",
-    answer:
-      "Some sizes do not reduce to small numbers. 1366 × 768 is exactly 683:384, which is very close to 16:9 but not equal to it. When that happens the calculator also shows the nearest common ratio.",
+    question: "Why do I get a ratio like 683:384?",
+    answer: "Some sizes do not reduce to small numbers. 1366 × 768 is exactly 683:384, which is close to 16:9 but not equal to it.",
   },
 ];
 
@@ -177,68 +150,34 @@ export default function AspectRatioCalculator() {
     <ToolPage
       slug="aspect-ratio-calculator"
       name="Aspect ratio calculator"
-      title="Aspect Ratio Calculator: Find and Resize Any Ratio | Mesurer"
-      description="Free aspect ratio calculator. Enter a width and height to get the ratio (16:9, 4:3, 1:1), then resize to a new width or height without stretching. Copies the CSS too."
+      title="Aspect Ratio Calculator | Mesurer"
+      description="Find the aspect ratio of any width and height, then resize to a new size without stretching. Free, with the CSS to copy."
       heading="Aspect ratio calculator"
-      intro="Enter a width and a height to get the aspect ratio. Then type a new width or height, and the other side is worked out so the image, video, or element keeps its shape."
+      intro="Get the ratio of any size, and resize it without stretching."
       tool={<Calculator />}
       faq={faq}
-      cta="Mesurer is a browser extension that measures the width, height, and spacing of anything on a live page, so you can read the real size of an element before working out its ratio."
+      cta="Read the real width and height of anything on a live page."
     >
-      <Section title="How to use the aspect ratio calculator">
-        <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-5">
-          <li>Enter the original width and height, or pick a common ratio such as 16:9.</li>
-          <li>Read the simplified ratio, its decimal value, and the CSS to copy.</li>
-          <li>Type a new width or a new height. The other side updates to keep the same ratio.</li>
-        </ol>
-        <p className="m-0">
-          The address of the page updates as you type, so you can copy it to share a calculation.
-        </p>
-      </Section>
-
-      <Section title="The aspect ratio formula">
-        <p className="m-0">
-          An aspect ratio is the width of a shape compared to its height, written as two numbers such as 16:9. To find it, divide both sides by their greatest common divisor:
-        </p>
-        <pre className="m-0 overflow-x-auto rounded-md bg-subtle px-3 py-2 font-mono text-[13px] text-strong">
-{`ratio      = (width ÷ gcd) : (height ÷ gcd)
+      <Section title="Formula">
+        <Formula>{`ratio      = (width ÷ gcd) : (height ÷ gcd)
 new height = new width × height ÷ width
-new width  = new height × width ÷ height`}
-        </pre>
-        <p className="m-0">
-          For 1920 × 1080 the greatest common divisor is 120, so the ratio is 16:9. Resizing it to 1280 wide gives 1280 × 1080 ÷ 1920 = 720 high.
-        </p>
+new width  = new height × width ÷ height`}</Formula>
       </Section>
 
-      <Section title="Common aspect ratios and resolutions">
+      <Section title="Common aspect ratios">
         <Table
-          head={["Ratio", "Decimal", "Common sizes", "Used for"]}
+          head={["Ratio", "Sizes", "Used for"]}
           rows={[
-            ["16:9", "1.78", "1280 × 720, 1920 × 1080, 3840 × 2160", "HD and 4K video, YouTube, most monitors"],
-            ["16:10", "1.6", "1280 × 800, 1920 × 1200, 2560 × 1600", "Laptop screens"],
-            ["4:3", "1.33", "1024 × 768, 1600 × 1200", "Older displays, tablets, presentations"],
-            ["3:2", "1.5", "1080 × 720, 2160 × 1440", "Photography, 35mm film"],
-            ["1:1", "1", "1080 × 1080", "Square posts, avatars"],
-            ["4:5", "0.8", "1080 × 1350", "Instagram portrait posts"],
-            ["9:16", "0.56", "1080 × 1920", "TikTok, Reels, Shorts, Stories"],
-            ["21:9", "2.33", "2560 × 1080, 3440 × 1440", "Ultrawide monitors, cinematic video"],
+            ["16:9", "1280 × 720, 1920 × 1080, 3840 × 2160", "Video, YouTube, monitors"],
+            ["16:10", "1280 × 800, 1920 × 1200", "Laptops"],
+            ["4:3", "1024 × 768, 1600 × 1200", "Tablets, slides"],
+            ["3:2", "1080 × 720, 2160 × 1440", "Photos"],
+            ["1:1", "1080 × 1080", "Square posts, avatars"],
+            ["4:5", "1080 × 1350", "Instagram portrait"],
+            ["9:16", "1080 × 1920", "Reels, Shorts, TikTok"],
+            ["21:9", "2560 × 1080, 3440 × 1440", "Ultrawide"],
           ]}
         />
-      </Section>
-
-      <Section title="Aspect ratio in CSS">
-        <p className="m-0">
-          The <code className="code">aspect-ratio</code> property keeps an element in proportion as its width changes. It is the simplest way to reserve space for images, video, and embeds before they load, which avoids layout shift.
-        </p>
-        <div className="flex items-start justify-between gap-3 rounded-md bg-subtle px-3 py-2">
-          <pre className="m-0 overflow-x-auto font-mono text-[13px] text-strong">
-{`.video {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-}`}
-          </pre>
-          <CopyButton value={".video {\n  width: 100%;\n  aspect-ratio: 16 / 9;\n}"} />
-        </div>
       </Section>
     </ToolPage>
   );
