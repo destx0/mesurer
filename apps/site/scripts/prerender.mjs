@@ -76,6 +76,9 @@ try {
       keepLast('meta[name="twitter:title"]');
       keepLast('meta[name="twitter:description"]');
     });
+    // Mesurer is mounted on the client only: its live toolbar is taken out of the snapshot, or the
+    // page would show a second, unmoving toolbar next to the one the client mounts.
+    await page.evaluate(() => document.querySelectorAll(".mesurer-root").forEach((node) => node.remove()));
     const html = await page.content();
     if (!html.includes("<h1")) {
       throw new Error(`Prerender produced no heading for ${route.path}`);
