@@ -210,7 +210,14 @@ export const traceToSvg = (
       // Specks are left out, and each patch is cut to a few points.
       const loops = outlines(index, width, height, at).filter((loop) => Math.abs(area(loop)) >= 4);
       const covered = loops.reduce((sum, loop) => sum + area(loop), 0);
-      const d = loops.map((loop) => toPath(simplify(loop, 0.9))).join("");
+      const d = loops
+        .map((loop) => {
+          // A patch one pixel across comes down to a single line, which is no shape: it is
+          // kept as it was.
+          const fewer = simplify(loop, 0.9);
+          return toPath(fewer.length >= 6 ? fewer : loop);
+        })
+        .join("");
       return { color: hex(color), d, covered: Math.abs(covered) };
     })
     .filter((layer) => layer.d)

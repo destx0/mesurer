@@ -99,7 +99,10 @@ const drawn = async (file: File, kind: Kind, option: number, to: Output) => {
     if (!width || !height || Math.max(width, height) > LARGEST_SIDE) throw new Error("The image is too large.");
     const canvas = document.createElement("canvas");
     if (to === "svg") {
-      const shrink = Math.min(1, TRACED_SIDE / Math.max(width, height));
+      // A large picture is traced smaller, and a small one larger: an icon's fine lines are
+      // then a few pixels across, and are traced as shapes with curves to them.
+      const side = Math.max(width, height);
+      const shrink = side > TRACED_SIDE ? TRACED_SIDE / side : Math.min(8, Math.max(1, Math.floor(TRACED_SIDE / 2 / side)));
       canvas.width = Math.max(1, Math.round(width * shrink));
       canvas.height = Math.max(1, Math.round(height * shrink));
       const context = canvas.getContext("2d", { willReadFrequently: true });
