@@ -90,10 +90,12 @@ export const createReviewStateFromWorkspace = ({
     }
   })
 
+  // Each note is saved with the style it is shown in, so that it is read back in it.
+  const textAnnotations = workspace.textAnnotations.map((text) => ({ ...text, style: text.style ?? LEGACY_TEXT_STYLE }))
   const annotations: ReviewAnnotation[] = [
     ...workspace.arrows.map((arrow) => ({ type: "arrow" as const, ...arrow })),
     ...workspace.penStrokes.map((stroke) => ({ type: "pen" as const, ...stroke })),
-    ...workspace.textAnnotations.map((text) => ({ type: "text" as const, ...text, style: text.style ?? LEGACY_TEXT_STYLE })),
+    ...textAnnotations.map((text) => ({ type: "text" as const, ...text })),
     ...workspace.guides.map((guide) => ({ type: "guide" as const, ...guide })),
     ...workspace.measurements.map(({ elementRef, ...measurement }) => ({
       type: "measurement" as const,
@@ -135,7 +137,7 @@ export const createReviewStateFromWorkspace = ({
       guides: workspace.guides,
       arrows: workspace.arrows,
       penStrokes: workspace.penStrokes,
-      textAnnotations: workspace.textAnnotations,
+      textAnnotations,
       measurements: workspace.measurements.map(stripMeasurement),
       heldDistances: workspace.heldDistances.map(stripDistance),
       comments,
