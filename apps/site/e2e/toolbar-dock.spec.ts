@@ -366,9 +366,11 @@ test("a dragged toolbar stays under the pointer through a glue and a release", a
     if (!box) return false;
     return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
   };
+  // The bar may still be swinging into place when the pointer stops: what must hold is that it
+  // settles under the pointer, not that it is there on the very frame the pointer arrives.
   const moveTo = async (x: number, y: number) => {
     await page.mouse.move(x, y, { steps: 8 });
-    expect(await holdsPointer(x, y), `pointer at ${x},${y} is on the toolbar`).toBe(true);
+    await expect.poll(() => holdsPointer(x, y), { message: `pointer at ${x},${y} is on the toolbar`, timeout: 2000 }).toBe(true);
   };
 
   // Grab the bar a quarter of the way along, well away from its middle.

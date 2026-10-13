@@ -66,7 +66,7 @@ const state = {
       text: "Styled note",
       scale: 1.5,
     }],
-    textStyle: { font: "code" as const, color: "#ff00aa" },
+    textStyle: { font: "code" as const, color: "#ff00aa", background: "none" as const, backgroundColor: "#ffffff" },
   },
 };
 
@@ -83,7 +83,7 @@ const stateWithWorkspace: ReviewState = {
       heldDistances: [{ id: "distance-1", rectA: { left: 10, top: 10, width: 10, height: 10 }, rectB: { left: 40, top: 40, width: 10, height: 10 }, normalizedRectA: { left: 10, top: 10, width: 10, height: 10 }, normalizedRectB: { left: 40, top: 40, width: 10, height: 10 }, horizontal: null, vertical: null, connectors: [] }],
       comments: state.review.comments,
       layoutGuides: [{ id: "layout-1", kind: "columns", visible: true, color: "#ff0000", opacity: 0.1, count: 5, size: 72, gutter: 20, offset: 0, align: "stretch" }],
-      textStyle: { font: "code", color: "#ff00aa" },
+      textStyle: { font: "code", color: "#ff00aa", background: "none", backgroundColor: "#ffffff" },
     },
   },
 };
@@ -106,7 +106,7 @@ test("serializes and restores a review state through local storage", async ({ pa
 
   expect(JSON.parse(result.serialized).schemaVersion).toBe(1);
   expect(result.restored).toEqual(state);
-  expect(result.restored.review.textStyle).toEqual({ font: "code", color: "#ff00aa" });
+  expect(result.restored.review.textStyle).toEqual({ font: "code", color: "#ff00aa", background: "none", backgroundColor: "#ffffff" });
   expect(result.removed).toBeNull();
 });
 
