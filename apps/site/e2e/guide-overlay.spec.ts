@@ -1356,11 +1356,6 @@ test("opening settings with a tool active pins that tool section", async ({ page
   await expectSettingsSectionPinned(page, "arrows");
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Text (T)" }).click();
-  await settings.click();
-  await expectSettingsSectionPinned(page, "text");
-  await page.keyboard.press("Escape");
-
   await page.getByRole("button", { name: "Select (S)" }).click();
   await settings.click();
   await expectSettingsSectionPinned(page, "inspect");

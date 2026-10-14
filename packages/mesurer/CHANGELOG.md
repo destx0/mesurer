@@ -1,5 +1,11 @@
 # mesurer
 
+## 0.2.7
+
+- add a pens tray to the pen tool: pick ink or marker, set each one's width and colour, and find each as it was left
+- add an eraser to the pen tool that rubs out only the part of a stroke it passes over
+- make ink strokes smooth, with a width that changes with how fast or hard you draw
+
 ## 0.2.6
 
 - add responsive previews (`B`): the page at several screen sizes side by side, with Inspect, Comments, Guides, and X-ray working in each
