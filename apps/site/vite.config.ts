@@ -31,9 +31,31 @@ const localReviews = (): Plugin => {
   };
 };
 
-export default defineConfig(({ command }) => ({
+// Every npm download of the package since it was first published. The npm API answers at most
+// 18 months per request, so the whole span is asked in parts. Null when npm cannot be reached: the
+// page then shows the count it was last built with.
+const DAY = 86_400_000;
+const npmDownloads = async (): Promise<number | null> => {
+  try {
+    const signal = AbortSignal.timeout(5000);
+    const registry = await fetch("https://registry.npmjs.org/mesurer", { signal }).then((response) => response.json());
+    const day = (time: number) => new Date(time).toISOString().slice(0, 10);
+    let total = 0;
+    for (let start = Date.parse(registry.time.created); start < Date.now(); start += 540 * DAY) {
+      const end = Math.min(start + 539 * DAY, Date.now());
+      const range = await fetch(`https://api.npmjs.org/downloads/range/${day(start)}:${day(end)}/mesurer`, { signal }).then((response) => response.json());
+      total += range.downloads.reduce((sum: number, entry: { downloads: number }) => sum + entry.downloads, 0);
+    }
+    return total > 0 ? total : null;
+  } catch {
+    return null;
+  }
+};
+
+export default defineConfig(async ({ command }) => ({
   plugins: [tailwindcss(), react(), localReviews()],
   define: {
+    __MESURER_DOWNLOADS__: JSON.stringify(await npmDownloads()),
     __MESURER_SNAPDOM_CAPTURE__: "true",
     // The test pages run the extension's content script from source, with saving a review on.
     __MESURER_REVIEW__: "true",
