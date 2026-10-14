@@ -33,10 +33,12 @@ const routes = [
   { path: "/tools/random-color-palette-generator", ready: "#tool-title" },
   { path: "/tools/px-to-rem", ready: "#tool-title" },
   { path: "/tools/rem-to-px", ready: "#tool-title" },
+  // Cloudflare Pages answers any address with no file with the top-level 404.html, and a 404 status.
+  { path: "/404", ready: "#not-found-title", file: "404.html" },
 ];
 
 const outFile = (route) =>
-  route === "/" ? join(dist, "index.html") : join(dist, route.slice(1), "index.html");
+  route.file ? join(dist, route.file) : route.path === "/" ? join(dist, "index.html") : join(dist, route.path.slice(1), "index.html");
 
 const server = await preview({
   root,
@@ -54,7 +56,9 @@ try {
   for (const route of routes) {
     await page.goto(`http://127.0.0.1:${port}${route.path}`, { waitUntil: "load" });
     await page.waitForSelector(route.ready, { timeout: 15_000 });
-    await page.evaluate(() => {
+    await page.evaluate((notFound) => {
+      // The not-found page is no page of its own: it names no address as the one to index.
+      if (notFound) document.querySelectorAll('link[rel="canonical"], meta[property="og:url"]').forEach((node) => node.remove());
       const keepLast = (selector) => {
         const nodes = [...document.querySelectorAll(selector)];
         nodes.slice(0, -1).forEach((node) => node.remove());
@@ -75,7 +79,7 @@ try {
       keepLast('meta[property="og:description"]');
       keepLast('meta[name="twitter:title"]');
       keepLast('meta[name="twitter:description"]');
-    });
+    }, Boolean(route.file));
     // Mesurer is mounted on the client only: its live toolbar is taken out of the snapshot, or the
     // page would show a second, unmoving toolbar next to the one the client mounts.
     await page.evaluate(() => document.querySelectorAll(".mesurer-root").forEach((node) => node.remove()));
@@ -83,7 +87,7 @@ try {
     if (!html.includes("<h1")) {
       throw new Error(`Prerender produced no heading for ${route.path}`);
     }
-    files.push({ file: outFile(route.path), html, path: route.path });
+    files.push({ file: outFile(route), html, path: route.path });
   }
   for (const { file, html, path } of files) {
     await mkdir(dirname(file), { recursive: true });

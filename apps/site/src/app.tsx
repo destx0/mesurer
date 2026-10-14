@@ -17,6 +17,12 @@ const TermsPage = lazy(routeLoaders.terms);
 const DocsPage = lazy(routeLoaders.docs);
 const ToolsPage = lazy(routeLoaders.tools);
 const OldPage = lazy(() => import("./pages/old"));
+const NotFoundPage = lazy(() => import("./pages/not-found"));
+
+const PAGES = new Set(["/", "/changelog", "/privacy", "/terms", "/docs", "/docs/props", "/docs/shortcuts", "/tools", "/old"]);
+
+/** Whether the site has a page at this address. Any other one shows the not-found page. */
+export const isPage = (path: string) => PAGES.has(path) || TOOLS.some((tool) => toolHref(tool.slug) === path);
 
 const prefetchRoute = (pathname: string) => {
   if (pathname === "/") return routeLoaders.marketing();
@@ -75,11 +81,12 @@ function Analytics() {
 
 export function App() {
   const path = useClientPath();
-  // An address under /tools that is no tool shows the list of them, and says it is that page.
-  const canonicalPath = path.startsWith("/tools/") && !TOOLS.some((tool) => toolHref(tool.slug) === path) ? "/tools" : path;
-  const canonical = `https://mesurer.dev${canonicalPath === "/" ? "" : canonicalPath}`;
+  const found = isPage(path);
+  const canonical = `https://mesurer.dev${path === "/" ? "" : path}`;
   const page =
-    path === "/changelog" ? (
+    !found ? (
+      <NotFoundPage />
+    ) : path === "/changelog" ? (
       <ChangelogPage />
     ) : path === "/privacy" ? (
       <PrivacyPage />
@@ -97,8 +104,12 @@ export function App() {
 
   return (
     <>
-      <link rel="canonical" href={canonical} />
-      <meta property="og:url" content={canonical} />
+      {found ? (
+        <>
+          <link rel="canonical" href={canonical} />
+          <meta property="og:url" content={canonical} />
+        </>
+      ) : null}
       <Analytics />
       <RoutePrefetcher />
       <Suspense fallback={null}>{page}</Suspense>

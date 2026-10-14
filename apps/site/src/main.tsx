@@ -1,7 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
-import { App } from "./app";
+import { App, isPage } from "./app";
 // From the source, not the package: nothing about reviews is published yet.
 import { loadReviewViewer } from "../../../packages/mesurer/core/review/viewer-storage";
 
@@ -56,9 +56,13 @@ if (reviewId) {
       <App />
     </React.StrictMode>
   );
-  if (root.hasChildNodes()) {
+  // Cloudflare serves the not-found snapshot for every address with no file of its own, /old
+  // among them: a page the site does have is drawn fresh over it rather than hydrated.
+  const snapshotMatches = !root.querySelector("[data-not-found]") || !isPage(pathname);
+  if (root.hasChildNodes() && snapshotMatches) {
     ReactDOM.hydrateRoot(root, app);
   } else {
+    root.replaceChildren();
     ReactDOM.createRoot(root).render(app);
   }
 }
