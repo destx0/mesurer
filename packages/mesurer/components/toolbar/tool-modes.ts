@@ -15,6 +15,7 @@ export const toolGroupForMode = (
   if (mode === "comments") return null;
   if (
     mode === "select" ||
+    mode === "text-inspector" ||
     mode === "guides" ||
     mode === "xray" ||
     mode === "rulers"
@@ -42,6 +43,7 @@ export const exclusiveToolId = (
   if (colorPickerActive) return "color-picker";
   switch (mode) {
     case "select":
+    case "text-inspector":
     case "guides":
     case "selection":
     case "arrows":

@@ -102,10 +102,39 @@ test("disables feature controls and their shortcuts", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Settings" })).toHaveCount(0);
 });
 
+test("Typography mode shows styles on hover and pins them on click", async ({ page }) => {
+  await page.goto("/e2e/fixtures/guide-overlay.html");
+  const typography = page.getByRole("button", { name: "Typography (A)" });
+  await typography.click();
+  await expect(typography).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("body")).toHaveClass(/mesurer-text-inspector-\d+-mode/);
+
+  await page.mouse.move(340, 290);
+  const hoverCard = page.locator(".mesurer-ti-card:not(.mesurer-ti-card--pinned)");
+  await expect(hoverCard).toBeVisible();
+  await expect(hoverCard).toContainText("Family");
+  await expect(hoverCard).toContainText("Size");
+
+  await page.mouse.click(340, 290);
+  await expect(page.locator(".mesurer-ti-card--pinned")).toHaveCount(1);
+  // Typography mode uses clicks to pin; the page control underneath must not fire.
+  await expect(page.getByTestId("underlying-click-count")).toHaveText("0");
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".mesurer-ti-card--pinned")).toHaveCount(0);
+  await expect(typography).toHaveAttribute("aria-pressed", "true");
+
+  // A second Escape within the double-Escape window would minimize the toolbar.
+  await page.waitForTimeout(1100);
+  await page.keyboard.press("Escape");
+  await expect(typography).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("body")).not.toHaveClass(/mesurer-text-inspector-\d+-mode/);
+});
+
 test("Inspect shows typography details in the info card", async ({ page }) => {
   await page.goto("/e2e/fixtures/guide-overlay.html");
   await activateSelect(page);
-  await expect(page.getByRole("button", { name: "Typography (A)" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Typography (A)" })).toHaveCount(1);
 
   const target = page.getByRole("button", { name: "Underlying app button" });
   const targetBox = await target.boundingBox();

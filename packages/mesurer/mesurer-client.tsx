@@ -35,6 +35,7 @@ import { InspectInfoCard } from "./components/inspect-info-card";
 import { ScreenRecordingEditor, ScreenRecordingTimer } from "./components/screen-recording";
 import { useSelectionAnimationCleanup } from "./hooks/use-selection-animation-cleanup";
 import { useSelectedTypography } from "./hooks/use-selected-typography";
+import { useTextInspector } from "./hooks/use-text-inspector";
 import { useSelectorCopy } from "./hooks/use-selector-copy";
 import { useScrollOffset } from "./hooks/use-scroll-offset";
 import { useCommentRuntime } from "./hooks/use-comment-runtime";
@@ -426,6 +427,12 @@ export function MesurerClient({
     layoutGuides,
     layoutGuidesRef,
   } = workspace;
+  const textInspector = useTextInspector(
+    portalTarget,
+    toolMode,
+    settingsOpen,
+    minimized,
+  );
   const copyAllComments = async () => {
     const copied = await copyCommentsForAgent(comments, ownerWindow);
     if (copied) ownerWindow.dispatchEvent(new Event("mesurer:comments-copied"));
@@ -862,6 +869,14 @@ export function MesurerClient({
       clearSelectionRect,
     },
   });
+  const undoWithTextInspector = useCallback(() => {
+    if (toolMode === "text-inspector" && textInspector.undo()) return;
+    undo();
+  }, [textInspector, toolMode, undo]);
+  const redoWithTextInspector = useCallback(() => {
+    if (toolMode === "text-inspector" && textInspector.redo()) return;
+    redo();
+  }, [textInspector, toolMode, redo]);
   const setLayoutGuidesWithHistory = useCallback(
     (value: SetStateAction<LayoutGuide[]>) => {
       recordSnapshot();
@@ -1505,8 +1520,8 @@ export function MesurerClient({
     screenshot,
     screenRecording,
     colorPicker,
-    undo,
-    redo,
+    undo: undoWithTextInspector,
+    redo: redoWithTextInspector,
     // Over the previews, Delete is for what is selected in them: the page's own annotations are
     // put away, and are not removed from behind them.
     removeSelected: responsiveOpen ? removePreviewSelection : removeSelected,
@@ -1523,6 +1538,7 @@ export function MesurerClient({
     onCopyComments: copyAllComments,
     onResolveAllComments: resolveAllCommentsWithFeedback,
     dismissInspectorPins: () => {
+      if (textInspector.clear()) return true
       if (heldDistancesRef.current.length === 0) return false
       recordSnapshot()
       setHeldDistancesPersisted([])

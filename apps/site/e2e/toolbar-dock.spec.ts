@@ -387,9 +387,10 @@ test("a dragged toolbar stays under the pointer through a glue and a release", a
   await moveTo(30, 300);
   await moveTo(30, 380);
   // Off the left zone it is free and stays upright under the pointer, however far it goes.
-  await moveTo(52, 380);
+  // A little higher, so the longer bar (the Typography tool is back) fits standing.
+  await moveTo(52, 340);
   await expect(toolbar).toHaveAttribute("data-orientation", "vertical");
-  await moveTo(300, 380);
+  await moveTo(300, 340);
   await expect(toolbar).toHaveAttribute("data-orientation", "vertical");
   // The top zone lays it flat, and from there the middle keeps it flat.
   await moveTo(300, 40);
@@ -984,8 +985,8 @@ test("a row dragged into a side wall by its far end stands up without the pointe
   const toolbar = page.locator(".mesurer-toolbar-motion");
   await expect(toolbar).toBeVisible();
   await setDock(page, "snap");
-  // Low enough for the bar, held by its far end, to have room to stand up.
-  await dragTo(page, toolbar, 550, 400);
+  // Low enough for the longer bar, held by its far end, to have room to stand up.
+  await dragTo(page, toolbar, 550, 480);
 
   const box = await toolbar.boundingBox();
   if (!box) throw new Error("toolbar not visible");
@@ -993,9 +994,9 @@ test("a row dragged into a side wall by its far end stands up without the pointe
   await page.mouse.move(grabX, box.y + box.height / 2);
   await page.mouse.down();
   // The bar's left end meets the wall with the pointer still most of the bar's length away.
-  await page.mouse.move(grabX - box.x + 8, 400, { steps: 8 });
+  await page.mouse.move(grabX - box.x + 8, 480, { steps: 8 });
   await expect(toolbar).toHaveAttribute("data-orientation", "horizontal");
-  await page.mouse.move(grabX - box.x - 40, 400, { steps: 8 });
+  await page.mouse.move(grabX - box.x - 40, 480, { steps: 8 });
   await expect(toolbar).toHaveAttribute("data-orientation", "vertical");
   await expect(toolbar).not.toHaveAttribute("data-edge");
   const pointerX = grabX - box.x - 40;
@@ -1045,7 +1046,7 @@ test("a row turned by a wall lies flat again when let off it, and a reversed swi
   const toolbar = page.locator(".mesurer-toolbar-motion");
   await expect(toolbar).toBeVisible();
   await setDock(page, "snap");
-  await dragTo(page, toolbar, 550, 400);
+  await dragTo(page, toolbar, 550, 480);
   // A slow swing, so the reversal lands in the middle of it.
   await toolbar.evaluate((node) => {
     (node as HTMLElement).style.setProperty("--msr-toolbar-motion", "2000ms linear");
@@ -1066,10 +1067,10 @@ test("a row turned by a wall lies flat again when let off it, and a reversed swi
   const wall = grabX - box.x;
   await page.mouse.move(grabX, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(wall - 48, 400, { steps: 6 });
+  await page.mouse.move(wall - 48, 480, { steps: 6 });
   await expect(toolbar).toHaveAttribute("data-orientation", "vertical");
   await page.waitForTimeout(300);
-  await page.mouse.move(wall + 24, 400, { steps: 3 });
+  await page.mouse.move(wall + 24, 480, { steps: 3 });
   await expect(toolbar).toHaveAttribute("data-orientation", "horizontal");
   await page.mouse.up();
 

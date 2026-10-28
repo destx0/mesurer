@@ -33,6 +33,7 @@ Measured baselines for `feat/inspect-motion`:
 | Content script trim: the stylesheet read from the shipped mesurer.css instead of a second copy in the script, and the in-page recording editor and encoders left out (before: 225.2 KiB, after: 207.1 KiB) | 207.1 KiB | 207.5 KiB |
 | Pen tool: ink drawn as smooth, variable-width strokes, a marker, an eraser that rubs out part of a stroke, the tray of pens with their widths and colours, and a colour picker (before: 207.1 KiB, after: to be recorded from the next build) | 216.9 KiB | 217 KiB |
 | Text notes: a background per note, a text style menu on the Text tool, and review notes keeping their own style (before: 216.9 KiB, after: 217.9 KiB) | 217.9 KiB | 218 KiB |
+| Typography mode: the Aa hover inspector returns, with pinned cards, undo/redo and Escape-to-dismiss; the existing runtime was already shipped but tree-shaken out of the content script (normal build before: 217.9 KiB, after: 222.4 KiB; review build before: 219.0 KiB, after: 223.4 KiB) | 222.4 KiB | 224 KiB |
 
 The additional approximately 2.0 KiB implements the review's correctness and
 resource-safety fixes. The final stylesheet and iframe hardening adds
@@ -122,6 +123,14 @@ raised to 215 KiB so that a build made with `MESURER_REVIEW=1` passes too, and s
 fits when it is switched on for everyone. Past 250 KiB the script is made lighter instead.
 
 The pen tool and the text backgrounds took the content script to 216.9 KiB; the text style menu and the per-note review styles take it to 217.9 KiB, and the limit is set to 218 KiB, leaving about 0.1 KiB of headroom. An earlier build of the pen tool, before the eraser, measured about 212 KiB.
+
+Restoring Typography mode brings back the `Aa` tool mode: hovering text shows its family, size,
+weight, line height and tracking, click pins a draggable card, and Escape clears pins before
+leaving the mode. The engine was still exported by the package but unused, so tree-shaking kept
+it out of the content script. Wiring it back adds about 4.5 KiB (normal 217.9 → 222.4 KiB;
+review 219.0 → 223.4 KiB). The limit is raised to 224 KiB, leaving about 0.6 KiB of headroom.
+The alternative would be a second, lighter hover card, duplicating the engine that already
+exists and is tested.
 
 From here the limit is raised with each feature as before, up to a ceiling of **250 KiB**. That is
 where a content script built on React, injected only when the extension is opened, stops being an

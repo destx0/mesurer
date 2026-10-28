@@ -220,6 +220,7 @@ export const MesurerOverlay = memo(function MesurerOverlay({
     interactive &&
     overlayVisible &&
     (toolMode !== "none" || Boolean(comments?.selectedId)) &&
+    toolMode !== "text-inspector" &&
     toolMode !== "xray" &&
     toolMode !== "rulers"
   const overlayCapturesPointer = overlayInteractive

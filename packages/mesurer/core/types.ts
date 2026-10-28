@@ -206,6 +206,7 @@ export type OptionTarget = {
 export type ToolMode =
   | "none"
   | "select"
+  | "text-inspector"
   | "selection"
   | "guides"
   | "xray"
@@ -226,4 +227,4 @@ export type OpenMenu =
   | { type: "layout-guides" }
   | null
 
-export type PersistentToolMode = Exclude<ToolMode, "none" | "xray" | "rulers">
+export type PersistentToolMode = Exclude<ToolMode, "none" | "text-inspector" | "xray" | "rulers">

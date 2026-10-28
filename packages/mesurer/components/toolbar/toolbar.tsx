@@ -47,6 +47,7 @@ import {
   RulerIcon,
   RulersIcon,
   TextIcon,
+  TextInspectorIcon,
   XrayIcon,
   CommentIcon,
   LayoutGridIcon,
@@ -499,6 +500,11 @@ function ToolbarComponent(
     setOpenMenu(null);
   };
 
+  const typographyMode = () => {
+    toggleTool("text-inspector");
+    setOpenMenu(null);
+  };
+
   // Comments sit in the trailing cluster, so they keep whichever tool group is open.
   const commentsMode = () => {
     toggleTool("comments");
@@ -851,6 +857,15 @@ function ToolbarComponent(
                                       onClick={selectMode}
                                     >
                                       <BoxSelectIcon size={20} />
+                                    </ToolbarButton>
+                                    <ToolbarButton
+                                      {...tool("text-inspector")}
+                                      active={toolMode === "text-inspector"}
+                                      label="Typography"
+                                      shortcut="A"
+                                      onClick={typographyMode}
+                                    >
+                                      <TextInspectorIcon size={20} aria-hidden="true" />
                                     </ToolbarButton>
                                     <ToolbarButton
                                       {...tool("xray")}
